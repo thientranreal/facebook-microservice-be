@@ -1,0 +1,51 @@
+# Build Folders
+bin/
+obj/
+
+# User-specific Files
+*.rsuser
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log
+logs/
+
+# Visual Studio 2019/2022
+.vscode/
+.vs/
+
+# DotNet specific
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+
+# NPM Packages (nếu có dùng Node.js hoặc frontend trong dự án microservices)
+node_modules/
+yarn.lock
+package-lock.json
+
+# Rider Files (nếu bạn sử dụng JetBrains Rider)
+.idea/
+*.sln.iml
+
+# Docker
+**/[Dd]ockerfile
+**/[Dd]ocker-compose*
+
+# Secrets
+appsettings*.json
+secrets.json
+.env
+
+# OS generated files
+.DS_Store
+Thumbs.db
