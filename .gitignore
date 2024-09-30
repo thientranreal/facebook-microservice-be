@@ -37,10 +37,6 @@ package-lock.json
 .idea/
 *.sln.iml
 
-# Docker
-**/[Dd]ockerfile
-**/[Dd]ocker-compose*
-
 # Secrets
 appsettings*.json
 secrets.json

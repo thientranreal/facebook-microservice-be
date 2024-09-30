@@ -19,5 +19,5 @@ public class Message
     [MaxLength(100)] public string Content { get; set; } = null!;
 
     // Navigation properties
-    public Group Group { get; set; } = null!;
+    public Group? Group { get; set; }
 }
