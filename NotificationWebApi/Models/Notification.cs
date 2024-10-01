@@ -1,4 +1,4 @@
-﻿namespace Notification.Models;
+namespace NotificationWebApi.Models;
 
 public class Notification
 {

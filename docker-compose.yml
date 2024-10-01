@@ -1,34 +1,10 @@
 ﻿version: '3.8'
-services:
-  notifcationdb:
-    container_name: notification-db
-    image: mysql
-    volumes:
-      - db-data:/var/lib/mysql
-    environment:
-      - MYSQL_ROOT_PASSWORD=12345
-    ports:
-      - "5002:3306"
-    networks:
-      - backend
-  notificationwebapi:
-    container_name: notifcation-webapi
-    image: notificationwebapi
-    build:
-      context: .
-      dockerfile: NotificationWebApi/Dockerfile
-    networks:
-      - backend
-    environment:
-      - DB_HOST=notifcation
-      - DB_NAME=notification-db
-      - DB_ROOT_PASSWORD=12345  
-    
+services:  
   contactdb:
     container_name: contact-db
     image: mysql
     volumes:
-      - db-data:/var/lib/mysql
+      - contactdb-data:/var/lib/mysql
     environment:
       - MYSQL_ROOT_PASSWORD=12345
     ports:
@@ -42,11 +18,40 @@ services:
     build:
       context: .
       dockerfile: ContactWebApi/Dockerfile
+    depends_on:
+      - contactdb
     networks:
       - backend
     environment:
       - DB_HOST=contactdb
       - DB_NAME=contact
+      - DB_ROOT_PASSWORD=12345
+  
+  notificationdb:
+    container_name: notification-db
+    image: mysql
+    volumes:
+      - notificationdb-data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=12345
+    ports:
+      - "5002:3306"
+    networks:
+      - backend
+
+  notificationwebapi:
+    container_name: notification-api
+    image: notificationwebapi
+    build:
+      context: .
+      dockerfile: NotificationWebApi/Dockerfile
+    depends_on:
+      - notificationdb
+    networks:
+      - backend
+    environment:
+      - DB_HOST=notificationdb
+      - DB_NAME=notification
       - DB_ROOT_PASSWORD=12345
   
   apigateway:
@@ -55,6 +60,9 @@ services:
     build:
       context: .
       dockerfile: ApiGateway/Dockerfile
+    depends_on:
+      - contactwebapi
+      - notificationwebapi
     ports:
       - "8001:8080"
     networks:
@@ -64,5 +72,6 @@ networks:
   backend:
     
 volumes:
-  db-data:
+  contactdb-data:
+  notificationdb-data:
 

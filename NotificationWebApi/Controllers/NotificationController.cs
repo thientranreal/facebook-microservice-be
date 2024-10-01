@@ -1,31 +1,30 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using NotificationWebApi.Models;
 
 namespace NotificationWebApi.Controllers
 {
-
-
-    [Route("api/[controller]")] // Sử dụng [controller] để tự động lấy tên
+    [Route("api/[controller]")]
     [ApiController]
-    public class NotificationController : ControllerBase // Đổi tên lớp thành NotificationsController
+    public class NotificationController : ControllerBase
     {
-        private readonly NotifcationDbContext _context;
+        private readonly NotificationDbContext _context;
 
-        public NotificationController(NotifcationDbContext context)
+        public NotificationController(NotificationDbContext context)
         {
             _context = context;
         }
 
-        // GET: api/notifications
+        // GET: api/Notification
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Notification.Models.Notification>>> GetNotifications()
+        public async Task<ActionResult<IEnumerable<Notification>>> GetNotifications()
         {
             return await _context.Notifications.ToListAsync();
         }
 
-        // GET: api/notifications/5
+        // GET: api/Notification/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Notification.Models.Notification>> GetNotification(int id)
+        public async Task<ActionResult<Notification>> GetNotification(int id)
         {
             var notification = await _context.Notifications.FindAsync(id);
 
@@ -37,20 +36,10 @@ namespace NotificationWebApi.Controllers
             return notification;
         }
 
-        // POST: api/notifications
-        [HttpPost]
-        public async Task<ActionResult<Notification.Models.Notification>> PostNotification(
-            Notification.Models.Notification notification)
-        {
-            _context.Notifications.Add(notification);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetNotification", new { id = notification.id }, notification);
-        }
-
-        // PUT: api/notifications/5
+        // PUT: api/Notification/5
+        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutNotification(int id, Notification.Models.Notification notification)
+        public async Task<IActionResult> PutNotification(int id, Notification notification)
         {
             if (id != notification.id)
             {
@@ -78,7 +67,18 @@ namespace NotificationWebApi.Controllers
             return NoContent();
         }
 
-        // DELETE: api/notifications/5
+        // POST: api/Notification
+        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpPost]
+        public async Task<ActionResult<Notification>> PostNotification(Notification notification)
+        {
+            _context.Notifications.Add(notification);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction("GetNotification", new { id = notification.id }, notification);
+        }
+
+        // DELETE: api/Notification/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteNotification(int id)
         {

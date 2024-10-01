@@ -3,8 +3,8 @@
     // Contact Web API
     //    api group
     {
-      "UpstreamPathTemplate": "/api/Group",
-      "UpstreamHttpMethod": [ "Get", "Post" ],
+      "UpstreamPathTemplate": "/api/group/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -12,24 +12,12 @@
           "Port": 8080
         }
       ],
-      "DownstreamPathTemplate": "/api/Group"
-    },
-    {
-      "UpstreamPathTemplate": "/api/Group/{id}",
-      "UpstreamHttpMethod": [ "Get", "Delete", "Put" ],
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "contactwebapi",
-          "Port": 8080
-        }
-      ],
-      "DownstreamPathTemplate": "/api/Group/{id}"
+      "DownstreamPathTemplate": "/api/group/{everything}"
     },
     //    api message
     {
-      "UpstreamPathTemplate": "/api/Message",
-      "UpstreamHttpMethod": [ "Get", "Post" ],
+      "UpstreamPathTemplate": "/api/message/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -37,24 +25,12 @@
           "Port": 8080
         }
       ],
-      "DownstreamPathTemplate": "/api/Message"
-    },
-    {
-      "UpstreamPathTemplate": "/api/Message/{id}",
-      "UpstreamHttpMethod": [ "Get", "Delete", "Put" ],
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "contactwebapi",
-          "Port": 8080
-        }
-      ],
-      "DownstreamPathTemplate": "/api/Message/{id}"
+      "DownstreamPathTemplate": "/api/message/{everything}"
     },
     //    api joining
     {
-      "UpstreamPathTemplate": "/api/Joining",
-      "UpstreamHttpMethod": [ "Get", "Post" ],
+      "UpstreamPathTemplate": "/api/joining/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -62,31 +38,20 @@
           "Port": 8080
         }
       ],
-      "DownstreamPathTemplate": "/api/Joining"
+      "DownstreamPathTemplate": "/api/joining/{everything}"
     },
+//    Api Notification
     {
-      "UpstreamPathTemplate": "/api/Joining/{id}",
-      "UpstreamHttpMethod": [ "Get", "Delete", "Put" ],
+      "UpstreamPathTemplate": "/api/notification/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "contactwebapi",
+          "Host": "notificationwebapi",
           "Port": 8080
         }
       ],
-      "DownstreamPathTemplate": "/api/Joining/{id}"
-    },
-    {
-      "DownstreamPathTemplate": "/api/notification/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "localhost",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/post/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
+      "DownstreamPathTemplate": "/api/notification/{everything}"
     }
   ],
   "GlobalConfiguration": {
