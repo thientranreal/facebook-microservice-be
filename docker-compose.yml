@@ -1,5 +1,29 @@
 ﻿version: '3.8'
 services:
+  notifcationdb:
+    container_name: notification-db
+    image: mysql
+    volumes:
+      - db-data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=12345
+    ports:
+      - "5002:3306"
+    networks:
+      - backend
+  notificationwebapi:
+    container_name: notifcation-webapi
+    image: notificationwebapi
+    build:
+      context: .
+      dockerfile: NotificationWebApi/Dockerfile
+    networks:
+      - backend
+    environment:
+      - DB_HOST=notifcation
+      - DB_NAME=notification-db
+      - DB_ROOT_PASSWORD=12345  
+    
   contactdb:
     container_name: contact-db
     image: mysql
@@ -41,3 +65,4 @@ networks:
     
 volumes:
   db-data:
+
