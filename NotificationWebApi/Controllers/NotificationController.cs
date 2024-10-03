@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NotificationWebApi.Models;
+using NotificationWebApi.Repositories;
 
 namespace NotificationWebApi.Controllers
 {
@@ -22,19 +23,33 @@ namespace NotificationWebApi.Controllers
             return await _context.Notifications.ToListAsync();
         }
 
-        // GET: api/Notification/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Notification>> GetNotification(int id)
+        // GET: api/Notification/receiver/5
+        [HttpGet("receiver/{receiverId}")]
+        public async Task<ActionResult<IEnumerable<Notification>>> GetNotificationByReceiver(int receiverId)
         {
-            var notification = await _context.Notifications.FindAsync(id);
+            var notifications = await _context.Notifications.Where(n => n.receiver == receiverId).ToListAsync();
 
-            if (notification == null)
+            if (notifications == null || !notifications.Any())
             {
                 return NotFound();
             }
 
-            return notification;
+            return Ok(notifications);
         }
+
+
+        [HttpGet("{id}")]
+                public async Task<ActionResult<Notification>> GetNotification(int id)
+                {
+                    var notification = await _context.Notifications.FindAsync(id);
+        
+                    if (notification == null)
+                    {
+                        return NotFound();
+                    }
+        
+                    return notification;
+                }
 
         // PUT: api/Notification/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
