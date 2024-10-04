@@ -6,7 +6,7 @@ public class User
     
     public string Name { get; set; }
     
-    public DateOnly Birth { get; set; }
+    public DateTime Birth { get; set; }
     
     public string Avt { get; set; }
     
@@ -20,7 +20,7 @@ public class User
     
     public int IsOnline { get; set; } = 1; 
     
-    public DateOnly LastActive { get; set; }
+    public DateTime LastActive { get; set; }
     
     public string Password { get; set; } 
     

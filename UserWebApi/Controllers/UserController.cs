@@ -15,6 +15,27 @@ namespace UserWebApi.Controllers
             _dbContext = userDbContext;
         }
 
+        // GET: api/user
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<User>>> GetUsers()
+        {
+            return await _dbContext.Users.ToListAsync();
+        }
+
+        // GET: api/user/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<User>> GetUser(int id)
+        {
+            var @user = await _dbContext.Users.FindAsync(id);
+
+            if (@user == null)
+            {
+                return NotFound();
+            }
+
+            return @user;
+        }
+        
         [HttpPost]
         public async Task<ActionResult> Create(User user)
         {
