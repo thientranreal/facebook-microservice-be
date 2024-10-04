@@ -64,6 +64,19 @@
         }
       ],
       "DownstreamPathTemplate": "/api/notification/receiver/{everything}"
+    },
+//    Api user
+    {
+      "UpstreamPathTemplate": "/api/user/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "userwebapi",
+          "Port": 8080
+        }
+      ],
+      "DownstreamPathTemplate": "/api/user/{everything}"
     }
   ],
   "GlobalConfiguration": {

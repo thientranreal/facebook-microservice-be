@@ -54,6 +54,33 @@ services:
       - DB_NAME=notification
       - DB_ROOT_PASSWORD=12345
   
+  userdb:
+    container_name: user-db
+    image: mysql
+    volumes:
+      - userdb-data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=12345
+    ports:
+      - "5003:3306"
+    networks:
+      - backend
+  
+  userwebapi:
+    container_name: user-api
+    image: userwebapi
+    build:
+      context: .
+      dockerfile: UserWebApi/Dockerfile
+    depends_on:
+      - userdb
+    networks:
+      - backend
+    environment:
+      - DB_HOST=userdb
+      - DB_NAME=user
+      - DB_ROOT_PASSWORD=12345
+  
   apigateway:
     container_name: api-gateway
     image: apigateway
@@ -63,6 +90,7 @@ services:
     depends_on:
       - contactwebapi
       - notificationwebapi
+      - userwebapi
     ports:
       - "8001:8080"
     networks:
@@ -74,4 +102,4 @@ networks:
 volumes:
   contactdb-data:
   notificationdb-data:
-
+  userdb-data:
