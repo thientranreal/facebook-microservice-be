@@ -81,6 +81,62 @@ services:
       - DB_NAME=user
       - DB_ROOT_PASSWORD=12345
   
+  
+  postdb:
+    container_name: post-db
+    image: mysql
+    volumes:
+      - postdb-data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=12345
+    ports:
+      - "5004:3306"
+    networks:
+      - backend
+        
+        
+  postwebapi:
+    container_name: post-api
+    image: postwebapi
+    build:
+      context: .
+      dockerfile: PostWebApi/Dockerfile
+    depends_on:
+      - postdb
+    networks:
+      - backend
+    environment:
+      - DB_HOST=postdb
+      - DB_NAME=post
+      - DB_ROOT_PASSWORD=12345
+      
+  requestdb:
+    container_name: request-db
+    image: mysql
+    volumes:
+      - requestdb-data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=12345
+    ports:
+      - "5005:3306"
+    networks:
+      - backend    
+    
+  requestwebapi:
+    container_name: request-api
+    image: requestwebapi
+    build:
+      context: .
+      dockerfile: RequestWebApi/Dockerfile
+    depends_on:
+      - requestdb
+    networks:
+      - backend
+    environment:
+      - DB_HOST=requestdb
+      - DB_NAME=request
+      - DB_ROOT_PASSWORD=12345
+  
   apigateway:
     container_name: api-gateway
     image: apigateway
@@ -91,6 +147,8 @@ services:
       - contactwebapi
       - notificationwebapi
       - userwebapi
+      - postwebapi
+      - requestwebapi
     ports:
       - "8001:8080"
     networks:
@@ -103,3 +161,6 @@ volumes:
   contactdb-data:
   notificationdb-data:
   userdb-data:
+  postdb-data:
+  requestdb-data:
+
