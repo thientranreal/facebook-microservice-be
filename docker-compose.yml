@@ -109,6 +109,33 @@ services:
       - DB_HOST=postdb
       - DB_NAME=post
       - DB_ROOT_PASSWORD=12345
+      
+  requestdb:
+    container_name: request-db
+    image: mysql
+    volumes:
+      - requestdb-data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=12345
+    ports:
+      - "5005:3306"
+    networks:
+      - backend    
+    
+  requestwebapi:
+    container_name: request-api
+    image: requestwebapi
+    build:
+      context: .
+      dockerfile: RequestWebApi/Dockerfile
+    depends_on:
+      - requestdb
+    networks:
+      - backend
+    environment:
+      - DB_HOST=requestdb
+      - DB_NAME=request
+      - DB_ROOT_PASSWORD=12345
   
   apigateway:
     container_name: api-gateway
@@ -133,4 +160,5 @@ volumes:
   notificationdb-data:
   userdb-data:
   postdb-data:
+  requestdb-data:
 

@@ -103,6 +103,19 @@
         }
       ],
       "DownstreamPathTemplate": "/api/story/{everything}"
+    },
+//    Api request
+    {
+      "UpstreamPathTemplate": "/api/request/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "requestwebapi",
+          "Port": 8080
+        }
+      ],
+      "DownstreamPathTemplate": "/api/request/{everything}"
     }
   ],
   "GlobalConfiguration": {
