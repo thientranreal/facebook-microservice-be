@@ -147,6 +147,8 @@ services:
       - contactwebapi
       - notificationwebapi
       - userwebapi
+      - postwebapi
+      - requestwebapi
     ports:
       - "8001:8080"
     networks:
