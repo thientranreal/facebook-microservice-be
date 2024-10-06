@@ -4,8 +4,19 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
+
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigin",
+        builder =>
+        {
+            builder.WithOrigins("http://localhost:3000")
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        });
+});
 
 // Database Context Dependency Injection
 var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
@@ -17,6 +28,9 @@ builder.Services.AddDbContext<ContactDbContext>(o => o.UseMySQL(connectionString
 // =========================================
 
 var app = builder.Build();
+
+// Use CORS
+app.UseCors("AllowSpecificOrigin");
 
 // Configure the HTTP request pipeline.
 

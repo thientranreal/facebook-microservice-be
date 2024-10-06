@@ -15,6 +15,24 @@ namespace ContactWebApi.Controllers
             _context = context;
         }
 
+        // GET: api/Message/UserMessages
+        [HttpGet("UserMessages/{userId}/latest")]
+        public async Task<ActionResult<IEnumerable<Message>>> GetUserMessages(int userId)
+        {
+            // Truy vấn để lấy các tin nhắn mà userId là người gửi hoặc người nhận
+            var latestMessage = await _context.Messages
+                .Where(m => m.Sender == userId || m.Receiver == userId)
+                .OrderByDescending(m => m.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (latestMessage == null)
+            {
+                return NotFound("No messages found for the given user.");
+            }
+
+            return Ok(latestMessage);
+        }
+        
         // GET: api/Message
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Message>>> GetMessages()
