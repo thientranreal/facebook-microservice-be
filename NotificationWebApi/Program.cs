@@ -17,15 +17,17 @@ builder.Services.AddDbContext<NotificationDbContext>(o => o.UseMySQL(connectionS
 //=========================================
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowSpecificOrigin",
-        policy => policy.WithOrigins("http://localhost:3000")
-                        .AllowAnyMethod()
-                        .AllowAnyHeader()
-                        .AllowCredentials());
+    options.AddPolicy("AllowAll",
+        policy => policy.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader());
 });
 var app = builder.Build();
 
-app.UseCors("AllowSpecificOrigin");
+// Configure the HTTP request pipeline.
+app.UseHttpsRedirection();
+app.UseCors("AllowAll");
+// Configure the HTTP request pipeline.
 
 app.UseAuthorization();
 
