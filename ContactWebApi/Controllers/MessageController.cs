@@ -36,6 +36,24 @@ namespace ContactWebApi.Controllers
             return Ok(latestMessages);
         }
         
+        // GET: api/Message/UserMessages/{userId}/{contactId}
+        [HttpGet("UserMessages/{userId}/{contactId}")]
+        public async Task<ActionResult<IEnumerable<Message>>> GetUserMessagesByContactId(int userId, int contactId)
+        {
+            var messages = await _context.Messages
+                .Where(m => m.Sender == userId && m.Receiver == contactId 
+                            || m.Receiver == userId && m.Sender == contactId)
+                .OrderByDescending(m => m.CreatedAt)
+                .ToListAsync();
+
+            if (!messages.Any())
+            {
+                return NotFound("No messages found for the given user.");
+            }
+
+            return Ok(messages);
+        }
+        
         // GET: api/Message
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Message>>> GetMessages()
