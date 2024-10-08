@@ -43,7 +43,7 @@ namespace ContactWebApi.Controllers
             var messages = await _context.Messages
                 .Where(m => m.Sender == userId && m.Receiver == contactId 
                             || m.Receiver == userId && m.Sender == contactId)
-                .OrderByDescending(m => m.CreatedAt)
+                .OrderBy(m => m.CreatedAt)
                 .ToListAsync();
 
             if (!messages.Any())
