@@ -19,4 +19,4 @@ RUN dotnet publish "NotificationWebApi.csproj" -c $BUILD_CONFIGURATION -o /app/p
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "NotificationWebApi.dll", "watch", "run"]
+ENTRYPOINT ["dotnet", "NotificationWebApi.dll"]

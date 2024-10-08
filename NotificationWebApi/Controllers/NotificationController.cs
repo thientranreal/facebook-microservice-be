@@ -8,7 +8,6 @@ namespace NotificationWebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [EnableCors("AllowSpecificOrigin")]
     public class NotificationController : ControllerBase
     {
         private readonly NotificationDbContext _context;

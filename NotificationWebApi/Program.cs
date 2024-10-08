@@ -17,8 +17,6 @@ builder.Services.AddDbContext<NotificationDbContext>(o => o.UseMySQL(connectionS
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-app.UseHttpsRedirection();
 
 // Configure the HTTP request pipeline.
 
