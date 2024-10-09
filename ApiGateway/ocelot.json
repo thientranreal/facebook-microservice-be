@@ -65,6 +65,18 @@
       ],
       "DownstreamPathTemplate": "/api/notification/receiver/{everything}"
     },
+    {
+      "UpstreamPathTemplate": "/api/notification/markAllAsRead/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "notificationwebapi",
+          "Port": 8080
+        }
+      ],
+      "DownstreamPathTemplate": "/api/notification/markAllAsRead/{everything}"
+    },
 //    Api user
     {
       "UpstreamPathTemplate": "/api/user/{everything}",
