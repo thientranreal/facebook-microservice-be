@@ -45,18 +45,21 @@ namespace UserWebApi.Controllers
         }
         
         [HttpPost("login")]
-        public async Task<ActionResult> Login(string email, string password)
+        public async Task<ActionResult> Login([FromBody] LoginRequest loginRequest)
         {
-            // Tìm người dùng theo email
-            var user = await _dbContext.Users
-                .SingleOrDefaultAsync(u => u.Email == email);
-    
-            if (user == null || user.Password != password) // Lưu ý: so sánh mật khẩu trực tiếp không an toàn
+            if (loginRequest == null || string.IsNullOrEmpty(loginRequest.Email) || string.IsNullOrEmpty(loginRequest.Password))
             {
-                return Unauthorized(); // Trả về 401 Unauthorized nếu không tìm thấy người dùng hoặc mật khẩu không đúng
+                return BadRequest("Email and password are required.");
             }
 
-            return Ok(user); // Trả về thông tin người dùng nếu đăng nhập thành công
+            // Tìm người dùng theo email
+            var user = await _dbContext.Users.SingleOrDefaultAsync(u => u.Email == loginRequest.Email);
+
+            if (user == null || user.Password != loginRequest.Password)
+            {
+                return Unauthorized(); 
+            }
+            return Ok(user); 
         }
     }
 }
