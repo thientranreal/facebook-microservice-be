@@ -15,6 +15,45 @@ namespace ContactWebApi.Controllers
             _context = context;
         }
 
+        // GET: api/Message/UserMessages/{userId}/latest
+        [HttpGet("UserMessages/{userId}/latest")]
+        public async Task<ActionResult<IEnumerable<Message>>> GetUserMessages(int userId)
+        {
+            var latestMessages = await _context.Messages
+                .Where(m => m.Sender == userId || m.Receiver == userId)
+                .GroupBy(m => new { 
+                    Sender = m.Sender == userId ? m.Receiver : m.Sender, 
+                    Receiver = m.Sender == userId ? m.Sender : m.Receiver 
+                }) // Nhóm theo Sender và Receiver, đảo ngược nếu cần
+                .Select(g => g.OrderByDescending(m => m.CreatedAt).FirstOrDefault()) // Lấy tin nhắn mới nhất trong mỗi nhóm
+                .ToListAsync();
+
+            if (!latestMessages.Any())
+            {
+                return NotFound("No messages found for the given user.");
+            }
+
+            return Ok(latestMessages);
+        }
+        
+        // GET: api/Message/UserMessages/{userId}/{contactId}
+        [HttpGet("UserMessages/{userId}/{contactId}")]
+        public async Task<ActionResult<IEnumerable<Message>>> GetUserMessagesByContactId(int userId, int contactId)
+        {
+            var messages = await _context.Messages
+                .Where(m => m.Sender == userId && m.Receiver == contactId 
+                            || m.Receiver == userId && m.Sender == contactId)
+                .OrderBy(m => m.CreatedAt)
+                .ToListAsync();
+
+            if (!messages.Any())
+            {
+                return NotFound("No messages found for the given user.");
+            }
+
+            return Ok(messages);
+        }
+        
         // GET: api/Message
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Message>>> GetMessages()

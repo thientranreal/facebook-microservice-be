@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NotificationWebApi.Models;
@@ -52,38 +53,24 @@ namespace NotificationWebApi.Controllers
                 }
 
         // PUT: api/Notification/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutNotification(int id, Notification notification)
-        {
-            if (id != notification.id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(notification).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!NotificationExists(id))
+        public IActionResult MarkAsRead(int id)
                 {
-                    return NotFound();
+                    var notification = _context.Notifications.FirstOrDefault(n => n.id == id);
+        
+                    if (notification == null)
+                    {
+                        return NotFound(new { message = "Notification not found." });
+                    }
+        
+                    notification.is_read = 1;
+        
+                    _context.SaveChanges();
+        
+                    return Ok(new { message = "Notification marked as read." });
                 }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
 
         // POST: api/Notification
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
         public async Task<ActionResult<Notification>> PostNotification(Notification notification)
         {
@@ -112,6 +99,27 @@ namespace NotificationWebApi.Controllers
         private bool NotificationExists(int id)
         {
             return _context.Notifications.Any(e => e.id == id);
+        }
+         [HttpPut("markAllAsRead/{receiverId}")]
+        public IActionResult MarkAllAsRead(int receiverId)
+        {
+            var notifications = _context.Notifications
+                .Where(n => n.receiver == receiverId) 
+                .ToList();
+
+            if (notifications.Count == 0)
+            {
+                return NotFound(new { message = "No notifications found for this receiver." });
+            }
+
+            foreach (var notification in notifications)
+            {
+                notification.is_read = 1; 
+            }
+
+            _context.SaveChanges(); 
+
+            return Ok(new { message = "All notifications marked as read for the specified receiver." });
         }
     }
 }

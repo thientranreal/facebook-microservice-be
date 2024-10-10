@@ -7,6 +7,24 @@ builder.Configuration.SetBasePath(builder.Environment.ContentRootPath)
     .AddEnvironmentVariables();
 builder.Services.AddOcelot(builder.Configuration);
 
+
+// Add config CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigin",
+        builder =>
+        {
+            builder.WithOrigins("http://localhost:3000") // Nguồn gốc frontend
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials(); // Thêm nếu bạn sử dụng cookie hoặc thông tin xác thực
+        });
+});
+
 var app = builder.Build();
+
+// Use middleware CORS
+app.UseCors("AllowSpecificOrigin");
+
 await app.UseOcelot();
 app.Run();
