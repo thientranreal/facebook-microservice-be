@@ -27,6 +27,21 @@
       ],
       "DownstreamPathTemplate": "/api/message/{everything}"
     },
+    //    Chat Signal R
+//    {
+//      "UpstreamPathTemplate": "/chathub/{catchAll}",
+//      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+//      "DownstreamScheme": "http",
+//      "DownstreamHostAndPorts": [
+//        { 
+//          "Host": "chatservice",
+//          "Port": 8080
+//        }
+//      ],
+//      "DownstreamPathTemplate": "/chathub/{catchAll}",
+//      "RouteIsCaseSensitive": false,
+//      "UseProxyWebSocket": true
+//    },
     //    api joining
     {
       "UpstreamPathTemplate": "/api/joining/{everything}",
@@ -53,7 +68,7 @@
       ],
       "DownstreamPathTemplate": "/api/notification/{everything}"
     },
-    
+
 //    Api user
     {
       "UpstreamPathTemplate": "/api/user/{everything}",
