@@ -35,6 +35,27 @@ namespace UserWebApi.Controllers
 
             return @user;
         }
+
+        // GET: api/user/search?name=John
+        [HttpGet("search")]
+        public async Task<ActionResult<IEnumerable<User>>> SearchUsersByName(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return BadRequest("Không tìm thấy name parameter!");
+            }
+
+            var users = await _dbContext.Users
+                .Where(u => u.Name.Contains(name)) 
+                .ToListAsync();
+
+            if (users == null || users.Count == 0)
+            {
+                return NotFound("Không tìm thấy user với tên: " + name);
+            }
+
+            return Ok(users);
+        }
         
         [HttpPost]
         public async Task<ActionResult> Create(User user)

@@ -80,7 +80,8 @@ services:
       - DB_HOST=userdb
       - DB_NAME=user
       - DB_ROOT_PASSWORD=12345
-  
+    ports:
+      - "8080:8080"
   
   postdb:
     container_name: post-db

@@ -8,6 +8,7 @@ namespace UserWebApi;
 public class UserDbContext : DbContext
 {
     public DbSet<User> Users { get; set; }
+    public DbSet<Friend> Friends { get; set; }
     
     public UserDbContext(DbContextOptions<UserDbContext> dbContextOptions) : base(dbContextOptions)
     {
