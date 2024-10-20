@@ -107,6 +107,32 @@
       ],
       "DownstreamPathTemplate": "/api/story/{everything}"
     },
+    {
+      "UpstreamPathTemplate": "/api/comment/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "postwebapi",
+          "Port": 8080
+        }
+      ],
+      "DownstreamPathTemplate": "/api/comment/{everything}"
+    },
+    {
+      "UpstreamPathTemplate": "/api/reaction/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "postwebapi",
+          "Port": 8080
+        }
+      ],
+      "DownstreamPathTemplate": "/api/reaction/{everything}"
+    },
+    
+    
 //    Api request
     {
       "UpstreamPathTemplate": "/api/request/{everything}",
