@@ -92,7 +92,6 @@ services:
       - DB_NAME=user
       - DB_ROOT_PASSWORD=12345
   
-  
   postdb:
     container_name: post-db
     image: mysql

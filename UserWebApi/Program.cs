@@ -13,11 +13,11 @@ var dbPassword = Environment.GetEnvironmentVariable("DB_ROOT_PASSWORD");
 
 var connectionString = $"server={dbHost};port=3306;database={dbName};user=root;password={dbPassword}";
 builder.Services.AddDbContext<UserDbContext>(o => o.UseMySQL(connectionString));
+
 // =========================================
 
-var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+var app = builder.Build();
 
 app.UseAuthorization();
 

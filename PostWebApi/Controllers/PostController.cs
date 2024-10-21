@@ -1,6 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PostWebApi.Models;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace PostWebApi.Controllers
 {
@@ -14,7 +17,7 @@ namespace PostWebApi.Controllers
         {
             _dbContext = postDbContext;
         }
-        
+
         // GET: api/post/currentUserId/userId
         [HttpGet("{currentUserId}/{userId?}")]
         public async Task<ActionResult<IEnumerable<Post>>> GetPosts(int currentUserId, int? userId)
@@ -56,8 +59,6 @@ namespace PostWebApi.Controllers
 
             return Ok(posts); // Return all posts if no userId is provided
         }
-
-        
 
         //POST : api/post
         [HttpPost]
@@ -127,6 +128,53 @@ namespace PostWebApi.Controllers
             _dbContext.Posts.Remove(post);
             await _dbContext.SaveChangesAsync();
             return NoContent();
+        }
+
+
+
+
+
+
+        // GET: api/post
+        [HttpGet]
+        [Route("")]
+        public async Task<ActionResult<IEnumerable<Post>>> GetPosts()
+        {
+            return await _dbContext.Posts.ToListAsync();
+        }
+        // GET: api/post/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Post>> GetPost(int id)
+        {
+            var post = await _dbContext.Posts.FindAsync(id);
+
+            if (post == null)
+            {
+                return NotFound();
+            }
+
+            return post;
+        }
+
+        // GET: api/post/search?content=example
+        [HttpGet("search")]
+        public async Task<ActionResult<IEnumerable<Post>>> SearchPostsByContent(string content)
+        {
+            if (string.IsNullOrEmpty(content))
+            {
+                return BadRequest("Content parameter is required.");
+            }
+
+            var posts = await _dbContext.Posts
+                .Where(post => post.content.Contains(content))
+                .ToListAsync();
+
+            if (posts == null || posts.Count == 0)
+            {
+                return NotFound($"No posts found with content containing: {content}.");
+            }
+
+            return Ok(posts); 
         }
     }
 }
