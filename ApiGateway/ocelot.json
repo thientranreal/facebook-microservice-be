@@ -27,6 +27,21 @@
       ],
       "DownstreamPathTemplate": "/api/message/{everything}"
     },
+    //    Chat Signal R
+//    {
+//      "UpstreamPathTemplate": "/chathub/{catchAll}",
+//      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+//      "DownstreamScheme": "http",
+//      "DownstreamHostAndPorts": [
+//        { 
+//          "Host": "chatservice",
+//          "Port": 8080
+//        }
+//      ],
+//      "DownstreamPathTemplate": "/chathub/{catchAll}",
+//      "RouteIsCaseSensitive": false,
+//      "UseProxyWebSocket": true
+//    },
     //    api joining
     {
       "UpstreamPathTemplate": "/api/joining/{everything}",
@@ -52,30 +67,6 @@
         }
       ],
       "DownstreamPathTemplate": "/api/notification/{everything}"
-    },
-    {
-      "UpstreamPathTemplate": "/api/notification/receiver/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "notificationwebapi",
-          "Port": 8080
-        }
-      ],
-      "DownstreamPathTemplate": "/api/notification/receiver/{everything}"
-    },
-    {
-      "UpstreamPathTemplate": "/api/notification/markAllAsRead/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "notificationwebapi",
-          "Port": 8080
-        }
-      ],
-      "DownstreamPathTemplate": "/api/notification/markAllAsRead/{everything}"
     },
 //    Api user
     {
@@ -128,6 +119,32 @@
       ],
       "DownstreamPathTemplate": "/api/story/{everything}"
     },
+    {
+      "UpstreamPathTemplate": "/api/comment/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "postwebapi",
+          "Port": 8080
+        }
+      ],
+      "DownstreamPathTemplate": "/api/comment/{everything}"
+    },
+    {
+      "UpstreamPathTemplate": "/api/reaction/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "postwebapi",
+          "Port": 8080
+        }
+      ],
+      "DownstreamPathTemplate": "/api/reaction/{everything}"
+    },
+    
+    
 //    Api request
     {
       "UpstreamPathTemplate": "/api/request/{everything}",

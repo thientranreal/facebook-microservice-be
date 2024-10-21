@@ -14,7 +14,13 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
+      <PackageReference Include="Google.Apis.Drive.v3" Version="1.68.0.3568" />
       <PackageReference Include="MySql.EntityFrameworkCore" Version="8.0.5" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="Utils\Json\ultimate-balm-439008-h4-909f5a5fc35d.json" />
     </ItemGroup>
 
 </Project>

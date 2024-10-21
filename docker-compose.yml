@@ -27,6 +27,17 @@ services:
       - DB_NAME=contact
       - DB_ROOT_PASSWORD=12345
   
+  chatservice:
+    container_name: chatservice
+    image: chatservice
+    build:
+      context: .
+      dockerfile: ChatService/Dockerfile
+    ports:
+      - "8002:8080"
+    networks:
+      - backend
+  
   notificationdb:
     container_name: notification-db
     image: mysql
