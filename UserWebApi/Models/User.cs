@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace UserWebApi.Models;
 
 public class User
@@ -33,4 +35,10 @@ public class User
     public string Relationship { get; set; }
 
     public DateTime TimeJoin { get; set; }
+
+    [JsonIgnore]
+    public ICollection<Friend> Friends1 { get; set; } = new List<Friend>(); // Friends where UserId1
+
+    [JsonIgnore]
+    public ICollection<Friend> Friends2 { get; set; } = new List<Friend>(); // Friends where UserId2
 }

@@ -156,22 +156,6 @@ namespace PostWebApi.Controllers
             return post;
         }
 
-        // GET: api/post/user/1
-        [HttpGet("user/{userId}")]
-        public async Task<ActionResult<IEnumerable<Post>>> GetPostsByUserId(int userId)
-        {
-            var posts = await _dbContext.Posts
-                .Where(post => post.userId == userId)
-                .ToListAsync();
-
-            if (posts == null || posts.Count == 0)
-            {
-                return NotFound($"No posts found for userId: {userId}.");
-            }
-
-            return Ok(posts); 
-        }
-
         // GET: api/post/search?content=example
         [HttpGet("search")]
         public async Task<ActionResult<IEnumerable<Post>>> SearchPostsByContent(string content)

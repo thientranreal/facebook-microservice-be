@@ -19,21 +19,24 @@ namespace UserWebApi.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
         {
-            return await _dbContext.Users.ToListAsync();
+            return await _dbContext.Users
+            .Include(u => u.Friends1)
+            .Include(u => u.Friends2)
+            .ToListAsync();
         }
 
         // GET: api/user/5
         [HttpGet("{id}")]
         public async Task<ActionResult<User>> GetUser(int id)
         {
-            var @user = await _dbContext.Users.FindAsync(id);
+            var user = await _dbContext.Users.FindAsync(id);
 
-            if (@user == null)
+            if (user == null)
             {
                 return NotFound();
             }
 
-            return @user;
+            return user;
         }
 
         // GET: api/user/search?name=John
@@ -57,6 +60,7 @@ namespace UserWebApi.Controllers
             return Ok(users);
         }
         
+        // POST: api/user
         [HttpPost]
         public async Task<ActionResult> Create(User user)
         {
@@ -64,7 +68,8 @@ namespace UserWebApi.Controllers
             await _dbContext.SaveChangesAsync();
             return Ok();
         }
-        
+
+        // POST: api/user/login
         [HttpPost("login")]
         public async Task<ActionResult> Login([FromBody] LoginRequest loginRequest)
         {
@@ -73,13 +78,13 @@ namespace UserWebApi.Controllers
                 return BadRequest("Email and password are required.");
             }
 
-            // Tìm người dùng theo email
             var user = await _dbContext.Users.SingleOrDefaultAsync(u => u.Email == loginRequest.Email);
 
             if (user == null || user.Password != loginRequest.Password)
             {
                 return Unauthorized(); 
             }
+
             return Ok(user); 
         }
     }

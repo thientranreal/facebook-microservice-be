@@ -28,4 +28,23 @@ public class UserDbContext : DbContext
             throw;
         }
     }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // User has many friendships as UserId1
+        modelBuilder.Entity<Friend>()
+            .HasOne(f => f.User1) // Friend liên kết với User1
+            .WithMany(u => u.Friends1) // Danh sách bạn bè mà người dùng đã kết bạn
+            .HasForeignKey(f => f.UserId1) // Khóa ngoại UserId1
+            .OnDelete(DeleteBehavior.Cascade); // Xóa theo chuỗi
+
+        // User has many friendships as UserId2
+        modelBuilder.Entity<Friend>()
+            .HasOne(f => f.User2) // Friend liên kết với User2
+            .WithMany(u => u.Friends2) // Danh sách bạn bè đã kết bạn với người dùng
+            .HasForeignKey(f => f.UserId2) // Khóa ngoại UserId2
+            .OnDelete(DeleteBehavior.Cascade); // Xóa theo chuỗi
+    }
 }
