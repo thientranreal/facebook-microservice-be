@@ -28,7 +28,10 @@ namespace NotificationWebApi.Controllers
         [HttpGet("receiver/{receiverId}")]
         public async Task<ActionResult<IEnumerable<Notification>>> GetNotificationByReceiver(int receiverId)
         {
-            var notifications = await _context.Notifications.Where(n => n.receiver == receiverId).ToListAsync();
+            var notifications = await _context.Notifications
+                .Where(n => n.receiver == receiverId)
+                .OrderByDescending(n => n.timeline) // Sắp xếp theo trường timeline
+                .ToListAsync();
 
             if (notifications == null || !notifications.Any())
             {

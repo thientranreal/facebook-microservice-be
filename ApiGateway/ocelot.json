@@ -68,6 +68,7 @@
       ],
       "DownstreamPathTemplate": "/api/notification/{everything}"
     },
+
 //    Api user
     {
       "UpstreamPathTemplate": "/api/user/{everything}",
