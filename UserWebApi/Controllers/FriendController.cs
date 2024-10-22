@@ -42,7 +42,7 @@ namespace UserWebApi.Controllers
 
             if (friendRelationships == null || friendRelationships.Count == 0)
             {
-                return NotFound("Hiện không có bất kỳ bạn bè nào.");
+                return NotFound("There are no friends at the moment!");
             }
 
             // Lấy danh sách bạn bè từ mối quan hệ
@@ -59,7 +59,7 @@ namespace UserWebApi.Controllers
         {
             if (friend == null || friend.UserId1 == friend.UserId2)
             {
-                return BadRequest("Không thể kết bạn !");
+                return BadRequest("Can not make a friend!");
             }
 
             // Kiểm tra nếu quan hệ bạn bè đã tồn tại
@@ -70,7 +70,7 @@ namespace UserWebApi.Controllers
 
             if (existingFriendship != null)
             {
-                return Conflict("Bạn đã tồn tại !");
+                return Conflict("They already was your friend !");
             }
 
             _dbContext.Friends.Add(friend);
