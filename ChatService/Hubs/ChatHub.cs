@@ -34,7 +34,16 @@ public class ChatHub : Hub
     
     public async Task SendMessage(int msgId, int fromId, int sentToId, string message)
     {
-        // Send to the client
-        await Clients.Client(_userConnections[sentToId.ToString()]).SendAsync("ReceiveMessage", msgId, fromId, message);
+        if (_userConnections.ContainsKey(sentToId.ToString()))
+        {
+            // Find connectionID base on sent to UserId
+            var client = Clients.Client(_userConnections[sentToId.ToString()]);
+    
+            // Send message to the client and Send message's notification to the client
+            await Task.WhenAll(
+                client.SendAsync("ReceiveMessage", msgId, fromId, message),
+                client.SendAsync("ReceiveMsgNotification")
+            );
+        }
     }
 }
