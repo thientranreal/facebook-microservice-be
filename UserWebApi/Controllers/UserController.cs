@@ -60,8 +60,8 @@ namespace UserWebApi.Controllers
             return Ok(users);
         }
 
-        //POST: api/user/1
-        [HttpPost("{userId}")]
+        //PUT: api/user/1
+        [HttpPut("{userId}")]
         public async Task<ActionResult<User>> UpdateUser (int userId, User user) {
             if (userId <= 0)
             {
@@ -155,8 +155,8 @@ namespace UserWebApi.Controllers
             return Ok(existingUser);
         }
 
-        //POST: api/user/upload?userId=1
-        [HttpPost("upload")]
+        //PATCH: api/user/upload?userId=1
+        [HttpPatch("upload")]
         public async Task<ActionResult<User>> UploadAvatarForUserByUserId(int userId, [FromBody] AvatarUpdateRequest request)
         {
             if (userId <= 0)
