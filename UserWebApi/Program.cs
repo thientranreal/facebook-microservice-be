@@ -1,10 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using UserWebApi;
+using UserWebApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+// Add EmailService
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // Database Context Dependency Injection
 var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
@@ -18,6 +22,8 @@ builder.Services.AddDbContext<UserDbContext>(o => o.UseMySQL(connectionString));
 
 
 var app = builder.Build();
+
+
 
 app.UseAuthorization();
 

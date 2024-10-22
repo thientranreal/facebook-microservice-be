@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UserWebApi.Models;
+using UserWebApi.Services;
 
 namespace UserWebApi.Controllers
 {
@@ -9,10 +10,11 @@ namespace UserWebApi.Controllers
     public class UserController : ControllerBase
     {
         private readonly UserDbContext _dbContext;
-        
-        public UserController(UserDbContext userDbContext)
+        private readonly IEmailService _emailService;
+        public UserController(UserDbContext userDbContext, IEmailService emailService)
         {
             _dbContext = userDbContext;
+            _emailService = emailService;
         }
 
         // GET: api/user
@@ -86,6 +88,32 @@ namespace UserWebApi.Controllers
             }
 
             return Ok(user); 
+        }
+        
+        [HttpPost("forgetpassword")]
+        public async Task<ActionResult> ForgetPassword([FromBody] ForgetPasswordRequest forgetPasswordRequest)
+        {
+            
+            if (string.IsNullOrEmpty(forgetPasswordRequest.Email))
+            {
+                return BadRequest("Email is required.");
+            }
+
+            // Tìm người dùng theo email
+            var user = await _dbContext.Users.SingleOrDefaultAsync(u => u.Email == forgetPasswordRequest.Email);
+
+            if (user == null)
+            {
+                return NotFound("User not found.");
+            }
+
+            // Console.WriteLine("heheheasdfdfkfkfkfkldcaigidodaidai===jdk=========================================================");
+            
+            // Gửi mật khẩu hiện tại của người dùng qua email
+            var emailBody = $"Your current password is: {user.Password}";
+            await _emailService.SendEmailAsync(user.Email, "Your Password", emailBody);
+
+            return Ok("Password has been sent to your email.");
         }
     }
 }
