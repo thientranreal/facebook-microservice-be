@@ -38,12 +38,8 @@ public class ChatHub : Hub
         {
             // Find connectionID base on sent to UserId
             var client = Clients.Client(_userConnections[sentToId.ToString()]);
-    
-            // Send message to the client and Send message's notification to the client
-            await Task.WhenAll(
-                client.SendAsync("ReceiveMessage", msgId, fromId, message),
-                client.SendAsync("ReceiveMsgNotification")
-            );
+
+            await client.SendAsync("ReceiveMessage", msgId, fromId, message);
         }
     }
 }
