@@ -16,11 +16,38 @@ namespace RequestWebApi.Controllers
         }
 
         // GET: api/Request
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Request>>> GetRequests()
+        [HttpGet("requests")]
+        public async Task<ActionResult<IEnumerable<Request>>> GetRequests(int? id, int pageNumber = 1, int pageSize = 20)
         {
-            return await _dbContext.Requests.ToListAsync();
+            var query = _dbContext.Requests.AsQueryable();
+
+            // Nếu có id, chỉ lấy yêu cầu với receiver bằng id đó
+            if (id.HasValue)
+            {
+                query = query.Where(r => r.Receiver == id.Value);
+            }
+
+            // Tính toán tổng số yêu cầu
+            var totalRequests = await query.CountAsync();
+
+            // Lấy danh sách yêu cầu theo trang
+            var requests = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // Trả về kết quả với thông tin tổng số
+            Response.Headers.Add("X-Total-Count", totalRequests.ToString());
+
+            // Nếu không có yêu cầu nào, trả về 204 No Content
+            if (!requests.Any())
+            {
+                return NoContent();
+            }
+
+            return Ok(requests);
         }
+
 
         // GET: api/Request/5
         [HttpGet("{id}")]
@@ -35,7 +62,7 @@ namespace RequestWebApi.Controllers
 
             return @Request;
         }
-        
+        //http://localhost:8001/api/request
         [HttpPost]
         public async Task<ActionResult> Create(Request Request)
         {
@@ -44,6 +71,21 @@ namespace RequestWebApi.Controllers
             return Ok();
         }
         
-        
+        // DELETE: api/Request/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteRequest(int id)
+        {
+            var request = await _dbContext.Requests.FindAsync(id);
+
+            if (request == null)
+            {
+                return NotFound();
+            }
+
+            _dbContext.Requests.Remove(request);
+            await _dbContext.SaveChangesAsync();
+
+            return NoContent();
+        }
     }
 }
