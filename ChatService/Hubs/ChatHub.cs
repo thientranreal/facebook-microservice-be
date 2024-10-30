@@ -73,4 +73,14 @@ public class ChatHub : Hub
                 .SendAsync("CallAccepted", signalData);
         }
     }
+    
+    public async Task EndCall(int toUserId)
+    {
+        if (_userConnections.TryGetValue(toUserId.ToString(), out var connectionId))
+        {
+            await Clients
+                .Client(connectionId)
+                .SendAsync("ReceiveEndCall");
+        }
+    }
 }
