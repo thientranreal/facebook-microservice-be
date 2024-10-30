@@ -7,7 +7,21 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
+
+// Configure CORS to allow any origin, method, and header.
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        builder => builder
+            .AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader());
+});
+
 var app = builder.Build();
+
+// Use the CORS policy.
+app.UseCors("AllowAll");
 
 app.MapHub<ChatHub>("/chathub");
 
