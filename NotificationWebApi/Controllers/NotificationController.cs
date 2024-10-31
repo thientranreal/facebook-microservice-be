@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using NotificationWebApi.DTO;
 using NotificationWebApi.Models;
 using NotificationWebApi.Repositories;
 
