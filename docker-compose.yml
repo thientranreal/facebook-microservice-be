@@ -153,12 +153,12 @@ services:
     build:
       context: .
       dockerfile: ApiGateway/Dockerfile
-    depends_on:
-      - contactwebapi
-      - notificationwebapi
-      - userwebapi
-      - postwebapi
-      - requestwebapi
+#    depends_on:
+#      - contactwebapi
+#      - notificationwebapi
+#      - userwebapi
+#      - postwebapi
+#      - requestwebapi
     ports:
       - "8001:8080"
     networks:
