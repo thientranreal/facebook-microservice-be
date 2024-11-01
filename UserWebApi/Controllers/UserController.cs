@@ -146,5 +146,90 @@ namespace UserWebApi.Controllers
 
             return Ok("Password has been sent to your email.");
         }
+        // PUT: api/user/5
+        [HttpPut("{id}")]
+        public async Task<ActionResult> UpdateUser(int id, [FromBody] User userUpdate)
+        {
+            var user = await _dbContext.Users.FindAsync(id);
+
+            if (user == null)
+            {
+                return NotFound("Could not find user with id: " + id); 
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Name))
+            {
+                user.Name = userUpdate.Name;
+            }
+
+            if (userUpdate.Birth != default)
+            {
+                user.Birth = userUpdate.Birth;
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Avt))
+            {
+                user.Avt = userUpdate.Avt;
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Phone))
+            {
+                user.Phone = userUpdate.Phone;
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Email))
+            {
+                user.Email = userUpdate.Email;
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Gender))
+            {
+                user.Gender = userUpdate.Gender;
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Desc))
+            {
+                user.Desc = userUpdate.Desc;
+            }
+
+            if (userUpdate.IsOnline != user.IsOnline) 
+            {
+                user.IsOnline = userUpdate.IsOnline;
+            }
+
+            if (userUpdate.LastActive != default) 
+            {
+                user.LastActive = userUpdate.LastActive;
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Address))
+            {
+                user.Address = userUpdate.Address;
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Social))
+            {
+                user.Social = userUpdate.Social;
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Education))
+            {
+                user.Education = userUpdate.Education;
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Relationship))
+            {
+                user.Relationship = userUpdate.Relationship;
+            }
+
+            if (userUpdate.TimeJoin != default) 
+            {
+                user.TimeJoin = userUpdate.TimeJoin;
+            }
+
+            await _dbContext.SaveChangesAsync(); 
+
+            return Ok(user); 
+        }
     }
 }
