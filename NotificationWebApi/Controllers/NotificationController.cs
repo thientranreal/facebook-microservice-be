@@ -124,5 +124,23 @@ namespace NotificationWebApi.Controllers
 
             return Ok(new { message = "All notifications marked as read for the specified receiver." });
         }
+        
+        [HttpDelete("delete/{user}/{receiver}/{post}/{action_n}")]
+        public async Task<IActionResult> DeleteNotification_2(int user, int receiver, int post, int action_n)
+        {
+            var notification = await _context.Notifications
+                .FirstOrDefaultAsync(n => n.user == user && n.receiver == receiver && n.post == post && n.action_n == action_n);
+
+            if (notification == null)
+            {
+                return NotFound(new { message = "Notification not found." });
+            }
+
+            _context.Notifications.Remove(notification);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
     }
 }
