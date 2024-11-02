@@ -15,6 +15,7 @@ namespace UserWebApi.Controllers
             _dbContext = dbContext;
         }
 
+        // lấy tất cả mối quan hệ trong bảng friend
         // GET: api/friend
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Friend>>> GetAllFriends()
@@ -38,7 +39,8 @@ namespace UserWebApi.Controllers
 
             if (friendRelationships == null || friendRelationships.Count == 0)
             {
-                return NotFound("Hiện không có bất kỳ bạn bè nào.");
+                // return NotFound("Hiện không có bất kỳ bạn bè nào.");
+                return Ok(new List<User>());
             }
 
             // Lấy danh sách bạn bè từ mối quan hệ

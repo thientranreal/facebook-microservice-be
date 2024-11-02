@@ -69,6 +69,90 @@ namespace UserWebApi.Controllers
             return Ok();
         }
 
+        // PUT: api/user/5
+        [HttpPut("{id}")]
+        public async Task<ActionResult> UpdateUser(int id, [FromBody] User userUpdate)
+        {
+            var user = await _dbContext.Users.FindAsync(id);
+
+            if (user == null)
+            {
+                return NotFound("Could not find user with id: " + id);
+            }
+
+            // Kiểm tra các trường thông tin cá nhân bắt buộc
+            if (string.IsNullOrEmpty(userUpdate.Name) ||
+                userUpdate.Birth == default ||
+                string.IsNullOrEmpty(userUpdate.Email) ||
+                string.IsNullOrEmpty(userUpdate.Phone) ||
+                string.IsNullOrEmpty(userUpdate.Gender) ||
+                string.IsNullOrEmpty(userUpdate.Address))
+            {
+                return BadRequest("Personal Information fields, such as name, phone, email, gender, address, birth, are required.");
+            }
+
+            // Cập nhật dữ liệu nếu có giá trị mới
+            user.Name = userUpdate.Name;
+            user.Birth = userUpdate.Birth;
+            user.Email = userUpdate.Email;
+            user.Phone = userUpdate.Phone;
+            user.Gender = userUpdate.Gender;
+            user.Address = userUpdate.Address;
+
+            // Các trường còn lại có thể có hoặc không
+            if (userUpdate.Avt != null)
+            {
+                user.Avt = userUpdate.Avt;
+            }
+
+            if (userUpdate.Desc != null)
+            {
+                user.Desc = userUpdate.Desc;
+            }
+
+            if (userUpdate.IsOnline != user.IsOnline)
+            {
+                user.IsOnline = userUpdate.IsOnline;
+            }
+
+            if (userUpdate.LastActive != default)
+            {
+                user.LastActive = userUpdate.LastActive;
+            }
+
+            if (userUpdate.Social != null)
+            {
+                user.Social = userUpdate.Social;
+            }
+
+            if (userUpdate.Education != null)
+            {
+                user.Education = userUpdate.Education;
+            }
+
+            if (userUpdate.Relationship != null)
+            {
+                user.Relationship = userUpdate.Relationship;
+            }
+
+            if (userUpdate.TimeJoin != default)
+            {
+                user.TimeJoin = userUpdate.TimeJoin;
+            }
+
+            // Cập nhật password nếu không rỗng
+            if (!string.IsNullOrEmpty(userUpdate.Password))
+            {
+                user.Password = userUpdate.Password;
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(user);
+        }
+
+
+
         // POST: api/user/login
         [HttpPost("login")]
         public async Task<ActionResult> Login([FromBody] LoginRequest loginRequest)
