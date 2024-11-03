@@ -35,7 +35,7 @@ public class PostDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         
-        
+
         // Automatically include Reactions when querying Post
         modelBuilder.Entity<Post>()
             .Navigation(p => p.Reactions)

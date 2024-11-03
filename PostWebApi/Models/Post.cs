@@ -10,11 +10,9 @@ public class Post
     [Required(ErrorMessage = "UserId is required.")]
     public int userId { get; set; }
     
-    [Required(ErrorMessage = "Content is required.hehe")]
-    [StringLength(1000, ErrorMessage = "Content cannot exceed 1000 characters.")]
-    public string content { get; set; }
-    
-    public string image { get; set; }
+    public string content { get; set; } = null;
+
+    public string? image { get; set; } = null;
     
     [Required(ErrorMessage = "Timeline is required.")]
     public DateTime timeline { get; set; }

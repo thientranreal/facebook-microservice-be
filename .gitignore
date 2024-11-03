@@ -45,3 +45,6 @@ secrets.json
 # OS generated files
 .DS_Store
 Thumbs.db
+
+#ignore file ultimate-balm-439008-h4-5ac62cc83f52.json
+PostWebApi\Services\ultimate-balm-439008-h4-5ac62cc83f52.json
