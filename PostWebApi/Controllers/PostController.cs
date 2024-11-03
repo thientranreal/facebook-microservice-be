@@ -185,52 +185,5 @@ namespace PostWebApi.Controllers
              await _dbContext.SaveChangesAsync();
              return NoContent();
         }
-
-
-
-
-
-
-        // GET: api/post
-        [HttpGet]
-        [Route("")]
-        public async Task<ActionResult<IEnumerable<Post>>> GetPosts()
-        {
-            return await _dbContext.Posts.ToListAsync();
-        }
-        // GET: api/post/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Post>> GetPost(int id)
-        {
-            var post = await _dbContext.Posts.FindAsync(id);
-
-            if (post == null)
-            {
-                return NotFound();
-            }
-
-            return post;
-        }
-
-        // GET: api/post/search?content=example
-        [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<Post>>> SearchPostsByContent(string content)
-        {
-            if (string.IsNullOrEmpty(content))
-            {
-                return BadRequest("Content parameter is required.");
-            }
-
-            var posts = await _dbContext.Posts
-                .Where(post => post.content.Contains(content))
-                .ToListAsync();
-
-            if (posts == null || posts.Count == 0)
-            {
-                return NotFound($"No posts found with content containing: {content}.");
-            }
-
-            return Ok(posts); 
-        }
     }
 }
