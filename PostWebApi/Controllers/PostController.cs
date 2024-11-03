@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PostWebApi.Models;
+using PostWebApi.Services;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,69 +14,95 @@ namespace PostWebApi.Controllers
     public class PostController : ControllerBase
     {
         private readonly PostDbContext _dbContext;
+        private readonly GoogleDriveService _googleDriveService;
         
-        public PostController(PostDbContext postDbContext)
+        public PostController(PostDbContext postDbContext,GoogleDriveService googleDriveService)
         {
             _dbContext = postDbContext;
+            _googleDriveService = googleDriveService;
         }
 
-        // GET: api/post/currentUserId/userId
-        [HttpGet("{currentUserId}/{userId?}")]
-        public async Task<ActionResult<IEnumerable<Post>>> GetPosts(int currentUserId, int? userId)
+        // Helper function for image upload
+        private async Task<string> UploadImageAsync(IFormFile? imageFile)
         {
-            // If userId is provided, filter posts by userId
-            if (userId.HasValue)
+            if (imageFile != null && imageFile.Length > 0)
             {
-                var userPosts = await _dbContext.Posts
-                    .Where(post => post.userId == userId.Value)
-                    .ToListAsync();
-
-                if (!userPosts.Any()) // No posts found for the user
-                {
-                    return NoContent(); // 204 No Content
-                }
-
-                // Set likedByCurrentUser for each post
-                foreach (var post in userPosts)
-                {
-                    post.likedByCurrentUser = post.Reactions?.Any(r => r.UserId == currentUserId) ?? false;
-                }
-
-                return Ok(userPosts); // Return filtered posts
+                using var stream = imageFile.OpenReadStream();
+                var mimeType = imageFile.ContentType; // e.g., "image/jpeg", "image/png"
+                return _googleDriveService.UploadImage(stream, imageFile.FileName, mimeType);
             }
-
-            // If no userId is provided, return all posts
-            var posts = await _dbContext.Posts.ToListAsync();
-    
-            if (!posts.Any()) // No posts found
-            {
-                return NoContent(); // 204 No Content
-            }
-
-            // Set likedByCurrentUser for each post
-            foreach (var post in posts)
-            {
-                post.likedByCurrentUser = post.Reactions?.Any(r => r.UserId == currentUserId) ?? false;
-            }
-
-            return Ok(posts); // Return all posts if no userId is provided
+            return string.Empty;
         }
+        
+        // GET:(đối với khi lấy post hiển thị lên home) http://localhost:8001/api/post/${currentUserId}?lastPostId=${lastPostId}&limit=${postsPerPage}
+        //GET: (đối với khi lấy post của một user)  http://localhost:8001/api/post/${currentUserId}/${userId}?lastPostId=${lastPostId}&limit=${postsPerPage}
+       [HttpGet("{currentUserId}/{userId?}")]
+       public async Task<ActionResult<IEnumerable<Post>>> GetPosts(int currentUserId, int? userId, int? lastPostId, int limit)
+       {
+           // Ensure lastPostId is set to 0 if null to avoid issues in query comparisons
+           lastPostId ??= 0;
+
+           IQueryable<Post> query = _dbContext.Posts
+               .OrderByDescending(post => post.timeline); // Order by newest posts first
+           
+           if (lastPostId != 0)
+           {
+               query = query.Where(post => post.id < lastPostId);
+           }
+       
+           // Apply user filter if userId is provided
+           if (userId.HasValue)
+           {
+               query = query.Where(post => post.userId == userId.Value);
+           }
+       
+           // Fetch limited posts according to the specified limit
+           var posts = await query
+               .Take(limit)
+               .ToListAsync();
+       
+           // Return 204 No Content if no posts found
+           if (!posts.Any())
+           {
+               return NoContent();
+           }
+       
+           // Set likedByCurrentUser flag for each post
+           foreach (var post in posts)
+           {
+               post.likedByCurrentUser = post.Reactions?.Any(r => r.UserId == currentUserId) ?? false;
+           }
+       
+           return Ok(posts);
+       }
+
 
         //POST : api/post
         [HttpPost]
-        public async Task<ActionResult<Post>> Create(Post post)
+        public async Task<ActionResult<Post>> Create([FromForm] int userId, [FromForm] string contentPost, [FromForm] IFormFile? imageFile)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);  
             }
-            
+
             try
             {
-                 post.timeline = DateTime.Now;  // Cập nhật lại timeline
-                 await _dbContext.Posts.AddAsync(post);
-                 await _dbContext.SaveChangesAsync();
-                 return Ok(post);  // Trả về kết quả khi tạo thành công
+                string imageUrl = await UploadImageAsync(imageFile);
+
+                // Create and save the post
+                var post = new Post
+                {
+                    userId = userId,
+                    content = contentPost,
+                    image = imageUrl,
+                    timeline = DateTime.Now,
+                };
+
+                await _dbContext.Posts.AddAsync(post);
+                await _dbContext.SaveChangesAsync();
+
+                return Ok(post);  // Return the created post
             }
             catch (Exception ex)
             {
@@ -83,40 +111,59 @@ namespace PostWebApi.Controllers
         }
 
 
-        //PUT : api/post/id
+        
+        // PUT : api/post/id
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, Post post)
+        public async Task<IActionResult> Update(int id, [FromForm] string contentPost, [FromForm] IFormFile? imageFile,[FromForm] int? discriptionActionToImage)
         {
-            // KIỂM TRA DỮ LIỆU ĐẦU VÀO CÓ HỢP LỆ KHÔNG?
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);  // Trả về 400 Bad Request với thông tin lỗi
+                return BadRequest(ModelState);  
             }
-
-            // 2. Tìm post hiện tại theo id
+            // 1. Find the existing post by ID
             var existingPost = await _dbContext.Posts.SingleOrDefaultAsync(p => p.id == id);
-
-            // 3. Nếu không tồn tại post, trả về NotFound (404)
             if (existingPost == null)
             {
-                return NotFound();  // Trả về 404 nếu không tìm thấy post
+                return NotFound();
             }
+            string imageUrl = existingPost.image;
             
-            // 5. Cập nhật các thuộc tính của post hiện tại với giá trị mới
-            existingPost.content = post.content;
-            existingPost.image = post.image;
-
-            // 6. Lưu thay đổi vào database
-            await _dbContext.SaveChangesAsync();
-
-            // 7. Trả về NoContent (204) để chỉ ra rằng cập nhật thành công
-            return NoContent();
+            
+            // 3. Update post properties 
+            existingPost.content = contentPost;
+        
+            // 4. Handle image if provided
+        
+            if (discriptionActionToImage == 1|| discriptionActionToImage==2)
+            {
+                var regex = new Regex(@"id=([a-zA-Z0-9_-]+)");
+                var match = regex.Match(existingPost.image ?? string.Empty);
+        
+                // Delete previous image if it exists
+                if (match.Success && match.Groups.Count > 1)
+                   _googleDriveService.DeleteImageFile(match.Groups[1].Value);
+                imageUrl = (discriptionActionToImage==1) ?   "" : await UploadImageAsync(imageFile); 
+                existingPost.image = imageUrl;
+            }
+            try
+            {
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                // Log exception
+                return StatusCode(500, "An error occurred while saving changes. Please try again later.");
+            }
+        
+            return Ok(existingPost); // Return updated post
         }
+
         
         //DELETE: api/post/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {   
+            
             //KIỂM TRA XEM POST CÓ TỒN TẠI KHÔNG?
             var post = await _dbContext.Posts.SingleOrDefaultAsync(p => p.id == id);
             //NẾU POST KHÔNG TỒN TẠI THÌ TRẢ VỀ 404 
@@ -124,10 +171,19 @@ namespace PostWebApi.Controllers
             {
                 return NotFound();  
             }
-            //NẾU POST TỒN TẠI THÌ THỰC HIỆN XÓA POST
-            _dbContext.Posts.Remove(post);
-            await _dbContext.SaveChangesAsync();
-            return NoContent();
+            var regex = new Regex(@"id=([a-zA-Z0-9_-]+)");
+            var match = regex.Match(post.image);
+
+            if (match.Success && match.Groups.Count > 1)
+            {
+                // Extract the file ID
+                // Console.WriteLine(match.Groups[1].Value);
+                var isSuccess = _googleDriveService.DeleteImageFile(match.Groups[1].Value);
+               
+            }
+             _dbContext.Posts.Remove(post);
+             await _dbContext.SaveChangesAsync();
+             return NoContent();
         }
 
 

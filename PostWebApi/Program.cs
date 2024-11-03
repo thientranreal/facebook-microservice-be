@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PostWebApi;
+using PostWebApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,7 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
     });
+builder.Services.AddScoped<GoogleDriveService>();
 
 // Database Context Dependency Injection
 var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
