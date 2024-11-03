@@ -68,6 +68,7 @@
       ],
       "DownstreamPathTemplate": "/api/notification/{everything}"
     },
+
 //    Api user
     {
       "UpstreamPathTemplate": "/api/user/{everything}",
@@ -80,6 +81,18 @@
         }
       ],
       "DownstreamPathTemplate": "/api/user/{everything}"
+    },
+    {
+      "UpstreamPathTemplate": "/api/friend/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "userwebapi",
+          "Port": 8080
+        }
+      ],
+      "DownstreamPathTemplate": "/api/friend/{everything}"
     },
     
 //    Api post

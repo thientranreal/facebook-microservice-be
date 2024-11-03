@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PostWebApi.Models;
 using PostWebApi.Services;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace PostWebApi.Controllers
 {
@@ -18,6 +21,7 @@ namespace PostWebApi.Controllers
             _dbContext = postDbContext;
             _googleDriveService = googleDriveService;
         }
+
         // Helper function for image upload
         private async Task<string> UploadImageAsync(IFormFile? imageFile)
         {
@@ -73,9 +77,7 @@ namespace PostWebApi.Controllers
        }
 
 
-        
-        
-        
+        //POST : api/post
         [HttpPost]
         public async Task<ActionResult<Post>> Create([FromForm] int userId, [FromForm] string contentPost, [FromForm] IFormFile? imageFile)
         {
@@ -182,6 +184,53 @@ namespace PostWebApi.Controllers
              _dbContext.Posts.Remove(post);
              await _dbContext.SaveChangesAsync();
              return NoContent();
+        }
+
+
+
+
+
+
+        // GET: api/post
+        [HttpGet]
+        [Route("")]
+        public async Task<ActionResult<IEnumerable<Post>>> GetPosts()
+        {
+            return await _dbContext.Posts.ToListAsync();
+        }
+        // GET: api/post/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Post>> GetPost(int id)
+        {
+            var post = await _dbContext.Posts.FindAsync(id);
+
+            if (post == null)
+            {
+                return NotFound();
+            }
+
+            return post;
+        }
+
+        // GET: api/post/search?content=example
+        [HttpGet("search")]
+        public async Task<ActionResult<IEnumerable<Post>>> SearchPostsByContent(string content)
+        {
+            if (string.IsNullOrEmpty(content))
+            {
+                return BadRequest("Content parameter is required.");
+            }
+
+            var posts = await _dbContext.Posts
+                .Where(post => post.content.Contains(content))
+                .ToListAsync();
+
+            if (posts == null || posts.Count == 0)
+            {
+                return NotFound($"No posts found with content containing: {content}.");
+            }
+
+            return Ok(posts); 
         }
     }
 }

@@ -28,7 +28,10 @@ namespace NotificationWebApi.Controllers
         [HttpGet("receiver/{receiverId}")]
         public async Task<ActionResult<IEnumerable<Notification>>> GetNotificationByReceiver(int receiverId)
         {
-            var notifications = await _context.Notifications.Where(n => n.receiver == receiverId).ToListAsync();
+            var notifications = await _context.Notifications
+                .Where(n => n.receiver == receiverId)
+                .OrderByDescending(n => n.timeline) // Sắp xếp theo trường timeline
+                .ToListAsync();
 
             if (notifications == null || !notifications.Any())
             {
@@ -121,5 +124,23 @@ namespace NotificationWebApi.Controllers
 
             return Ok(new { message = "All notifications marked as read for the specified receiver." });
         }
+        
+        [HttpDelete("delete/{user}/{receiver}/{post}/{action_n}")]
+        public async Task<IActionResult> DeleteNotification_2(int user, int receiver, int post, int action_n)
+        {
+            var notification = await _context.Notifications
+                .FirstOrDefaultAsync(n => n.user == user && n.receiver == receiver && n.post == post && n.action_n == action_n);
+
+            if (notification == null)
+            {
+                return NotFound(new { message = "Notification not found." });
+            }
+
+            _context.Notifications.Remove(notification);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
     }
 }

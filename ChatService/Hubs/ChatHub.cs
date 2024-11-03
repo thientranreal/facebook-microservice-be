@@ -34,7 +34,53 @@ public class ChatHub : Hub
     
     public async Task SendMessage(int msgId, int fromId, int sentToId, string message)
     {
-        // Send to the client
-        await Clients.Client(_userConnections[sentToId.ToString()]).SendAsync("ReceiveMessage", msgId, fromId, message);
+        if (_userConnections.TryGetValue(sentToId.ToString(), out var connectionId))
+        {
+            // Find connectionID base on sent to UserId
+            var client = Clients.Client(connectionId);
+
+            await client.SendAsync("ReceiveMessage", msgId, fromId, message);
+        }
+    }
+    
+    public async Task CallUser(int fromUserId, 
+        string userName,
+        string userAvt,
+        int toUserId,
+        string signalData,
+        bool isVideoCall)
+    {
+        if (_userConnections.TryGetValue(toUserId.ToString(), out var connectionId))
+        {
+            await Clients
+                .Client(connectionId)
+                .SendAsync("ReceiveCall", new {
+                fromUserId = fromUserId,
+                userName = userName,
+                userAvt = userAvt,
+                signalData = signalData,
+                isVideoCall = isVideoCall
+            });
+        }
+    }
+
+    public async Task AnswerCall(int toUserId, string signalData)
+    {
+        if (_userConnections.TryGetValue(toUserId.ToString(), out var connectionId))
+        {
+            await Clients
+                .Client(connectionId)
+                .SendAsync("CallAccepted", signalData);
+        }
+    }
+    
+    public async Task EndCall(int toUserId)
+    {
+        if (_userConnections.TryGetValue(toUserId.ToString(), out var connectionId))
+        {
+            await Clients
+                .Client(connectionId)
+                .SendAsync("ReceiveEndCall");
+        }
     }
 }

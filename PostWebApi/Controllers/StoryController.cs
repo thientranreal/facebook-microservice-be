@@ -18,7 +18,20 @@ namespace PostWebApi.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Story>>> GetStories()
         {
-            return await _dbContext.Stories.ToListAsync();
+            var twentyFourHoursAgo = DateTime.Now.AddHours(-24);
+
+            // Lọc story có timeline trong vòng 24 giờ và sắp xếp theo timeline giảm dần
+            var stories = await _dbContext.Stories
+                .Where(s => s.timeline >= twentyFourHoursAgo) // Chỉ lấy những story có timeline trong 24 giờ qua
+                .OrderByDescending(s => s.timeline) // Sắp xếp từ mới đến cũ
+                .ToListAsync();
+
+            if (stories == null || !stories.Any())
+            {
+                return NotFound();
+            }
+
+            return Ok(stories);
         }
 
         [HttpGet("{userId}")]
