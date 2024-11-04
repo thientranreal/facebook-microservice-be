@@ -26,6 +26,10 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
+    },
+    "GoogleReCaptcha": {
+      "SiteKey": "6LcJAXUqAAAAADOPzQbpo-zPyZptwF8BU0HVZ3WE",
+      "SecretyKey": "6LcJAXUqAAAAAKeNHa4xd7-22FDU-Vqc2Q88RrLy"
     }
   }
 }
