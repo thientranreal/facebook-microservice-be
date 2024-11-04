@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+﻿﻿using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PostWebApi.Models;
@@ -186,31 +186,7 @@ namespace PostWebApi.Controllers
              return NoContent();
         }
 
-
-
-
-
-
-        // GET: api/post
-        [HttpGet]
-        [Route("")]
-        public async Task<ActionResult<IEnumerable<Post>>> GetPosts()
-        {
-            return await _dbContext.Posts.ToListAsync();
-        }
-        // GET: api/post/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Post>> GetPost(int id)
-        {
-            var post = await _dbContext.Posts.FindAsync(id);
-
-            if (post == null)
-            {
-                return NotFound();
-            }
-
-            return post;
-        }
+        
 
         // GET: api/post/search?content=example
         [HttpGet("search")]
