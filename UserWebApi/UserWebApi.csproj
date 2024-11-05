@@ -15,6 +15,7 @@
       </PackageReference>
       <PackageReference Include="MailKit" Version="4.8.0" />
       <PackageReference Include="MySql.EntityFrameworkCore" Version="8.0.5" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     </ItemGroup>
 
     <ItemGroup>
