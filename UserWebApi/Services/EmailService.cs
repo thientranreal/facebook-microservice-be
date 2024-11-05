@@ -35,7 +35,7 @@ public class EmailService : IEmailService
         public async Task SendConfirmationEmailAsync(string toEmail, string userName)
         {
             // Tạo nội dung email với liên kết xác nhận
-            var confirmationLink = GenerateConfirmationLink(toEmail); // Hàm tạo link xác nhận, ví dụ như bạn đã thấy
+            var confirmationLink = GenerateConfirmationLink(toEmail); // Hàm tạo link xác nhận
             var subject = "Confirm Your Account";
             var body = $"Hello {userName},\n\nPlease confirm your account by clicking the following link: {confirmationLink}.\n\nIf you did not sign up, please ignore this email.";
 
@@ -59,11 +59,9 @@ public class EmailService : IEmailService
         }
 
 // Phương thức tạo liên kết xác nhận (có thể thêm token hoặc các giá trị khác để bảo mật)
-        private string GenerateConfirmationLink(string email)
-        {
-            var token = Guid.NewGuid().ToString(); // Tạo token ngẫu nhiên để xác thực
-            // Bạn có thể lưu token này vào cơ sở dữ liệu để kiểm tra khi xác thực
-            return $"https://yourwebsite.com/confirm-email?email={email}&token={token}";
-        }
+    private string GenerateConfirmationLink(string email)
+    {
+        return $"http://localhost:3000/confirm-email/{email}";
+    }
 }
 
