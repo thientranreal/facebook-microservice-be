@@ -45,13 +45,19 @@ namespace PostWebApi.Controllers
             {
                 return StatusCode(500, "Failed to upload image to Google Drive.");
             }
+            // Lấy thời gian hiện tại theo UTC
+            DateTime timelineUtc = DateTime.UtcNow;
+
+            // Chuyển đổi thời gian UTC sang giờ Việt Nam (UTC+7)
+            TimeZoneInfo vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            DateTime timelineVietnam = TimeZoneInfo.ConvertTimeFromUtc(timelineUtc, vietnamTimeZone);
 
             // Lưu thông tin story vào database
             var story = new Story
             {
                 userId = userId,
                 image = imageUrl,
-                timeline = DateTime.Now,
+                timeline = timelineVietnam,
             };
 
             _dbContext.Stories.Add(story);
