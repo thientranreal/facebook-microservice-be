@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ContactWebApi.Models;
@@ -38,20 +39,78 @@ namespace ContactWebApi.Controllers
         
         // GET: api/Message/UserMessages/{userId}/{contactId}
         [HttpGet("UserMessages/{userId}/{contactId}")]
-        public async Task<ActionResult<IEnumerable<Message>>> GetUserMessagesByContactId(int userId, int contactId)
+        public async Task<ActionResult<IEnumerable<Message>>> GetUserMessagesByContactId(
+            int userId, 
+            int contactId,
+            [FromQuery] String cursor = "",
+            [FromQuery] int pageSize = 10
+            )
         {
-            var messages = await _context.Messages
-                .Where(m => m.Sender == userId && m.Receiver == contactId 
-                            || m.Receiver == userId && m.Sender == contactId)
-                .OrderBy(m => m.CreatedAt)
-                .ToListAsync();
+            String createdAt = "", id = "";
+            // Decode the cursor if provided
+            if (!string.IsNullOrEmpty(cursor))
+            {
+                try
+                {
+                    var decodedBytes = Convert.FromBase64String(cursor);
+                    String decodedCursor = Encoding.UTF8.GetString(decodedBytes);
+                    String[] splitCursor = decodedCursor.Split('&');
+                    createdAt = splitCursor[0];
+                    id = splitCursor[1];
+                }
+                catch (Exception)
+                {
+                    return BadRequest("Invalid cursor format.");
+                }
+            }
+
+            string sqlQuery;
+            List<Message> messages;
+
+            if (!string.IsNullOrEmpty(createdAt))
+            {
+                sqlQuery = @"
+                    SELECT * FROM Messages
+                    WHERE (Sender = {0} AND Receiver = {1}
+                               OR Receiver = {0} AND Sender = {1})
+                    AND (CreatedAt = {2} AND Id < {3} OR CreatedAt < {2})
+                    ORDER BY CreatedAt DESC, Id DESC 
+                    LIMIT {4}";
+                
+                messages = await _context.Messages
+                    .FromSqlRaw(sqlQuery, userId, contactId, createdAt, id, pageSize)
+                    .ToListAsync();
+            }
+            else
+            {
+                sqlQuery = @"
+                SELECT * FROM Messages
+                WHERE (Sender = {0} AND Receiver = {1}
+                           OR Receiver = {0} AND Sender = {1})
+                ORDER BY CreatedAt DESC, Id DESC 
+                LIMIT {2}";
+                
+                messages = await _context.Messages
+                    .FromSqlRaw(sqlQuery, userId, contactId, pageSize)
+                    .ToListAsync();
+            }
 
             if (!messages.Any())
             {
                 return NotFound("No messages found for the given user.");
             }
-
-            return Ok(messages);
+            
+            // Encode the cursor for the last message in the current result
+            var lastMessage = messages.Last();
+            var newCursor = Convert.ToBase64String(
+                Encoding.UTF8.GetBytes(
+                    lastMessage.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss") + "&" + lastMessage.Id));
+            
+            return Ok(new
+            {
+                messages,
+                cursor = newCursor
+            });
         }
         
         // GET: api/Message
