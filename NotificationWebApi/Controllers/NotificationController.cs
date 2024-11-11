@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using NotificationWebApi.Hubs;
 using NotificationWebApi.Models;
 using NotificationWebApi.Repositories;
 
@@ -11,10 +13,12 @@ namespace NotificationWebApi.Controllers
     public class NotificationController : ControllerBase
     {
         private readonly NotificationDbContext _context;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public NotificationController(NotificationDbContext context)
+        public NotificationController(NotificationDbContext context,IHubContext<NotificationHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         // GET: api/Notification
@@ -135,12 +139,16 @@ namespace NotificationWebApi.Controllers
             {
                 return NotFound(new { message = "Notification not found." });
             }
-
             _context.Notifications.Remove(notification);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
-
+        // notification hub
+        [HttpPost("send")]
+        public async Task<IActionResult> SendNotification(string fromUserId, string toUserId, [FromBody] string message)
+        {
+            await _hubContext.Clients.User(toUserId).SendAsync("ReceiveNotification", $"{fromUserId}: {message}");
+            return Ok("Message sent.");
+        }
     }
 }
