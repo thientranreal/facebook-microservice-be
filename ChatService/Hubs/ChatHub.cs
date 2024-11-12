@@ -55,11 +55,11 @@ public class ChatHub : Hub
             await Clients
                 .Client(connectionId)
                 .SendAsync("ReceiveCall", new {
-                fromUserId = fromUserId,
-                userName = userName,
-                userAvt = userAvt,
-                signalData = signalData,
-                isVideoCall = isVideoCall
+                fromUserId,
+                userName,
+                userAvt,
+                signalData,
+                isVideoCall
             });
         }
     }
