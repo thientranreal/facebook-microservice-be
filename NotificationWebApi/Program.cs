@@ -20,14 +20,10 @@ builder.Services.AddDbContext<NotificationDbContext>(o => o.UseMySQL(connectionS
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-
-app.UseAuthorization();
-
-app.MapControllers();
 
 
 app.UseRouting();
+app.UseAuthorization();
 
 app.UseEndpoints(endpoints =>
 {

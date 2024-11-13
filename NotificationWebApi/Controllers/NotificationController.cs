@@ -83,7 +83,8 @@ namespace NotificationWebApi.Controllers
         {
             _context.Notifications.Add(notification);
             await _context.SaveChangesAsync();
-
+            await _hubContext.Clients.User(notification.receiver.ToString())
+                .SendAsync("ReceiveNotification", notification);
             return CreatedAtAction("GetNotification", new { id = notification.id }, notification);
         }
 
@@ -144,11 +145,11 @@ namespace NotificationWebApi.Controllers
             return NoContent();
         }
         // notification hub
-        [HttpPost("send")]
-        public async Task<IActionResult> SendNotification(string fromUserId, string toUserId, [FromBody] string message)
-        {
-            await _hubContext.Clients.User(toUserId).SendAsync("ReceiveNotification", $"{fromUserId}: {message}");
-            return Ok("Message sent.");
-        }
+        // [HttpPost("send")]
+        // public async Task<IActionResult> SendNotification(string fromUserId, string toUserId, [FromBody] string message)
+        // {
+        //     await _hubContext.Clients.User(toUserId).SendAsync("ReceiveNotification", $"{fromUserId}: {message}");
+        //     return Ok("Message sent.");
+        // }
     }
 }
