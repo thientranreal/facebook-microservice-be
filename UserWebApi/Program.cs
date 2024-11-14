@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using UserWebApi;
+using UserWebApi.Repositories;
 using UserWebApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +10,7 @@ builder.Services.AddControllers();
 
 // Add EmailService
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // Database Context Dependency Injection
 var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
@@ -28,16 +30,6 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 // =========================================
-// Enable CORS to allow access from React (modify origin as needed)
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowReactApp",
-        policy => policy
-            .WithOrigins("http://localhost:3000") // Thay bằng địa chỉ của React app
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials());
-});
 
 // Add Session and Distributed Cache
 builder.Services.AddDistributedMemoryCache();
