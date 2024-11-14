@@ -11,132 +11,76 @@ namespace NotificationWebApi.Controllers
     [ApiController]
     public class NotificationController : ControllerBase
     {
-        private readonly NotificationDbContext _context;
+        private readonly INotificationRepository _notificationRepository;
 
-        public NotificationController(NotificationDbContext context)
+        public NotificationController(INotificationRepository notificationRepository)
         {
-            _context = context;
+            _notificationRepository = notificationRepository;
         }
 
-        // GET: api/Notification
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Notification>>> GetNotifications()
         {
-            return await _context.Notifications.ToListAsync();
+            return Ok(await _notificationRepository.GetAllAsync());
         }
 
-        // GET: api/Notification/receiver/5
         [HttpGet("receiver/{receiverId}")]
         public async Task<ActionResult<IEnumerable<Notification>>> GetNotificationByReceiver(int receiverId)
         {
-            var notifications = await _context.Notifications
-                .Where(n => n.receiver == receiverId)
-                .OrderByDescending(n => n.timeline) // Sắp xếp theo trường timeline
-                .ToListAsync();
-
-            if (notifications == null || !notifications.Any())
-            {
-                return NotFound();
-            }
-
-            return Ok(notifications);
+            var notifications = await _notificationRepository.GetNotificationsByReceiverAsync(receiverId);
+            return notifications == null ? NotFound() : Ok(notifications);
         }
 
-
         [HttpGet("{id}")]
-                public async Task<ActionResult<Notification>> GetNotification(int id)
-                {
-                    var notification = await _context.Notifications.FindAsync(id);
-        
-                    if (notification == null)
-                    {
-                        return NotFound();
-                    }
-        
-                    return notification;
-                }
+        public async Task<ActionResult<Notification>> GetNotification(int id)
+        {
+            var notification = await _notificationRepository.GetByIdAsync(id);
+            return notification == null ? NotFound() : Ok(notification);
+        }
 
-        // PUT: api/Notification/5
         [HttpPut("{id}")]
-        public IActionResult MarkAsRead(int id)
-                {
-                    var notification = _context.Notifications.FirstOrDefault(n => n.id == id);
-        
-                    if (notification == null)
-                    {
-                        return NotFound(new { message = "Notification not found." });
-                    }
-        
-                    notification.is_read = 1;
-        
-                    _context.SaveChanges();
-        
-                    return Ok(new { message = "Notification marked as read." });
-                }
+        public async Task<IActionResult> MarkAsRead(int id)
+        {
+            var notification = await _notificationRepository.GetByIdAsync(id);
+            if (notification == null) return NotFound(new { message = "Notification not found." });
+            
+            notification.is_read = 1;
+            await _notificationRepository.UpdateAsync(notification);
+            
+            return Ok(new { message = "Notification marked as read." });
+        }
 
-        // POST: api/Notification
         [HttpPost]
         public async Task<ActionResult<Notification>> PostNotification(Notification notification)
         {
-            _context.Notifications.Add(notification);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction("GetNotification", new { id = notification.id }, notification);
+            await _notificationRepository.AddAsync(notification);
+            return CreatedAtAction(nameof(GetNotification), new { id = notification.id }, notification);
         }
 
-        // DELETE: api/Notification/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteNotification(int id)
         {
-            var notification = await _context.Notifications.FindAsync(id);
-            if (notification == null)
-            {
-                return NotFound();
-            }
-
-            _context.Notifications.Remove(notification);
-            await _context.SaveChangesAsync();
-
+            var notification = await _notificationRepository.GetByIdAsync(id);
+            if (notification == null) return NotFound();
+            
+            await _notificationRepository.DeleteAsync(notification);
             return NoContent();
         }
 
-        private bool NotificationExists(int id)
+        [HttpPut("markAllAsRead/{receiverId}")]
+        public async Task<IActionResult> MarkAllAsRead(int receiverId)
         {
-            return _context.Notifications.Any(e => e.id == id);
-        }
-         [HttpPut("markAllAsRead/{receiverId}")]
-        public IActionResult MarkAllAsRead(int receiverId)
-        {
-            var notifications = _context.Notifications
-                .Where(n => n.receiver == receiverId) 
-                .ToList();
-
-            if (notifications.Count == 0)
-            {
-                return NotFound(new { message = "No notifications found for this receiver." });
-            }
-
-            foreach (var notification in notifications)
-            {
-                notification.is_read = 1; 
-            }
-
-            _context.SaveChanges(); 
-
+            await _notificationRepository.MarkAllAsReadAsync(receiverId);
             return Ok(new { message = "All notifications marked as read for the specified receiver." });
         }
-        
+
         [HttpDelete("delete/{user}/{receiver}/{post}/{action_n}")]
         public async Task<IActionResult> DeleteNotification_2(int user, int receiver, int post, int action_n)
         {
-            var notification = await _context.Notifications
-                .FirstOrDefaultAsync(n => n.user == user && n.receiver == receiver && n.post == post && n.action_n == action_n);
-
-            if (notification == null)
-            {
-                return NotFound(new { message = "Notification not found." });
-            }
-            _context.Notifications.Remove(notification);
-            await _context.SaveChangesAsync();
+            var notification = await _notificationRepository.GetNotificationByDetailsAsync(user, receiver, post, action_n);
+            if (notification == null) return NotFound(new { message = "Notification not found." });
+            
+            await _notificationRepository.DeleteAsync(notification);
             return Ok(notification);
         }
     }
