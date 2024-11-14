@@ -1,6 +1,7 @@
 using System.Net.WebSockets;
 using Microsoft.EntityFrameworkCore;
 using NotificationWebApi;
+using NotificationWebApi.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,8 @@ var dbPassword = Environment.GetEnvironmentVariable("DB_ROOT_PASSWORD");
 
 var connectionString = $"server={dbHost};port=3306;database={dbName};user=root;password={dbPassword}";
 builder.Services.AddDbContext<NotificationDbContext>(o => o.UseMySQL(connectionString));
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+
 //=========================================
 
 var app = builder.Build();
