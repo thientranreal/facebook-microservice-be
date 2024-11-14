@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UserWebApi.Models;
+using UserWebApi.Repositories;
 using UserWebApi.Services;
 
 namespace UserWebApi.Controllers
@@ -11,11 +12,18 @@ namespace UserWebApi.Controllers
     {
         private readonly UserDbContext _dbContext;
         private readonly IEmailService _emailService;
+        private readonly IUserRepository _userRepository;
+        
         private static Dictionary<string, int> loginAttempts = new(); // Đếm số lần đăng nhập cho mỗi email
-        public UserController(UserDbContext userDbContext, IEmailService emailService)
+        public UserController(
+            UserDbContext userDbContext, 
+            IEmailService emailService, 
+            IUserRepository userRepository
+            )
         {
             _dbContext = userDbContext;
             _emailService = emailService;
+            _userRepository = userRepository;
         }
 
         // GET: api/user
@@ -32,7 +40,7 @@ namespace UserWebApi.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<User>> GetUser(int id)
         {
-            var user = await _dbContext.Users.FindAsync(id);
+            var user = await _userRepository.GetByIdAsync(id);
 
             if (user == null)
             {
