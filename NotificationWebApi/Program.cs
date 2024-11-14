@@ -1,7 +1,6 @@
 using System.Net.WebSockets;
 using Microsoft.EntityFrameworkCore;
 using NotificationWebApi;
-using NotificationWebApi.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +27,6 @@ app.UseAuthorization();
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapControllers();
-    endpoints.MapHub<NotificationHub>("/notificationHub");
 });
 
 app.Run();
