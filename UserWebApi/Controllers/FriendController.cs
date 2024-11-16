@@ -61,7 +61,7 @@ namespace UserWebApi.Controllers
         {
             if (friend == null || friend.UserId1 == friend.UserId2)
             {
-                return BadRequest("Không thể kết bạn !");
+                return BadRequest("Can not make a friend!");
             }
 
             // Kiểm tra nếu quan hệ bạn bè đã tồn tại
@@ -72,7 +72,7 @@ namespace UserWebApi.Controllers
 
             if (existingFriendship != null)
             {
-                return Conflict("Bạn đã tồn tại !");
+                return Conflict("They already was your friend !");
             }
             _dbContext.Friends.Add(friend);
             await _dbContext.SaveChangesAsync();

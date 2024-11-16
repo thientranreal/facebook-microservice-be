@@ -44,10 +44,10 @@ namespace UserWebApi.Controllers
 
             if (user == null)
             {
-                return NotFound();
+                return NotFound("Cannot find user with id : " + id);
             }
 
-            return user;
+            return Ok(user);
         }
 
         // GET: api/user/search?name=John&limit=10&offset=0
@@ -56,7 +56,7 @@ namespace UserWebApi.Controllers
         {
             if (string.IsNullOrEmpty(name))
             {
-                return BadRequest("Không tìm thấy name parameter!");
+                return BadRequest("Cannot find name parameter!");
             }
 
             int resultsLimit = limit ?? 10;
@@ -70,7 +70,7 @@ namespace UserWebApi.Controllers
 
             if (users == null || users.Count == 0)
             {
-                return NotFound("Không tìm thấy user với tên: " + name);
+                return NotFound("Cannot find user with name: " + name);
             }
 
             return Ok(users);
