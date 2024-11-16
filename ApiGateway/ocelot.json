@@ -72,7 +72,7 @@
 //    Api user
     {
       "UpstreamPathTemplate": "/api/user/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "PATCH", "DELETE" ],
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
