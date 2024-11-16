@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PostWebApi.Models;
+using PostWebApi.Repositories;
+using PostWebApi.Services;
 
 namespace PostWebApi.Controllers
 {
@@ -8,56 +10,75 @@ namespace PostWebApi.Controllers
     [ApiController]
     public class StoryController : ControllerBase
     {
-        private readonly PostDbContext _dbContext;
+        private readonly StoryRepository _storyRepository;
+        private readonly GoogleDriveService _googleDriveService;
+
         
-        public StoryController(PostDbContext postDbContext)
+        public StoryController(StoryRepository storyRepository, GoogleDriveService googleDriveService)
         {
-            _dbContext = postDbContext;
+            _storyRepository = storyRepository;
+            _googleDriveService = googleDriveService;
+        }
+        
+        private async Task<string> UploadImageAsync(IFormFile? imageFile)
+        {
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                using var stream = imageFile.OpenReadStream();
+                var mimeType = imageFile.ContentType; // e.g., "image/jpeg", "image/png"
+                return _googleDriveService.UploadImage(stream, imageFile.FileName, mimeType);
+            }
+            return string.Empty;
+        }
+        [HttpPost("create")]
+        public async Task<IActionResult> PostStory([FromForm] IFormFile image, [FromForm] int userId)
+        {
+            if (image == null || image.Length == 0)
+                return BadRequest("Image is required.");
+
+            var imageUrl = await UploadImageAsync(image);
+            if (string.IsNullOrEmpty(imageUrl))
+                return StatusCode(500, "Failed to upload image to Google Drive.");
+
+            var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            var story = new Story
+            {
+                userId = userId,
+                image = imageUrl,
+                timeline = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamTimeZone),
+            };
+
+            await _storyRepository.AddAsync(story);
+            await _storyRepository.SaveChangesAsync();
+            return Ok(story);
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Story>>> GetStories()
+        public async Task<IActionResult> GetStories()
         {
-            var twentyFourHoursAgo = DateTime.Now.AddHours(-24);
-
-            // Lọc story có timeline trong vòng 24 giờ và sắp xếp theo timeline giảm dần
-            var stories = await _dbContext.Stories
-                .Where(s => s.timeline >= twentyFourHoursAgo) // Chỉ lấy những story có timeline trong 24 giờ qua
-                .OrderByDescending(s => s.timeline) // Sắp xếp từ mới đến cũ
-                .ToListAsync();
-
+            var stories = await _storyRepository.GetStoriesWithin24HoursAsync();
             if (stories == null || !stories.Any())
-            {
                 return NotFound();
-            }
 
             return Ok(stories);
         }
 
         [HttpGet("{userId}")]
-        public async Task<ActionResult<IEnumerable<Story>>> GetStoriesByUserId(int userId)
+        public async Task<IActionResult> GetStoriesByUserId(int userId)
         {
-            // Lấy danh sách story theo userId
-            var stories = await _dbContext.Stories
-                .Where(s => s.userId == userId)
-                .ToListAsync();
-
+            var stories = await _storyRepository.GetStoriesByUserIdAsync(userId);
             if (stories == null || !stories.Any())
-            {
-                return NotFound(); // Trả về 404 nếu không tìm thấy story
-            }
+                return NotFound();
 
-            return Ok(stories); // Trả về danh sách story
+            return Ok(stories);
         }
-        
+
         [HttpPost]
-        public async Task<ActionResult> Create(Story story)
+        public async Task<IActionResult> Create(Story story)
         {
-            await _dbContext.Stories.AddAsync(story);
-            await _dbContext.SaveChangesAsync();
+            await _storyRepository.AddAsync(story);
+            await _storyRepository.SaveChangesAsync();
             return Ok();
         }
-        
-        
     }
 }

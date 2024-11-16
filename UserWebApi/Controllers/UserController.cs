@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UserWebApi.Models;
+using UserWebApi.Repositories;
 using UserWebApi.Services;
 
 namespace UserWebApi.Controllers
@@ -11,10 +12,18 @@ namespace UserWebApi.Controllers
     {
         private readonly UserDbContext _dbContext;
         private readonly IEmailService _emailService;
-        public UserController(UserDbContext userDbContext, IEmailService emailService)
+        private readonly IUserRepository _userRepository;
+        
+        private static Dictionary<string, int> loginAttempts = new(); // Đếm số lần đăng nhập cho mỗi email
+        public UserController(
+            UserDbContext userDbContext, 
+            IEmailService emailService, 
+            IUserRepository userRepository
+            )
         {
             _dbContext = userDbContext;
             _emailService = emailService;
+            _userRepository = userRepository;
         }
 
         // GET: api/user
@@ -31,7 +40,7 @@ namespace UserWebApi.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<User>> GetUser(int id)
         {
-            var user = await _dbContext.Users.FindAsync(id);
+            var user = await _userRepository.GetByIdAsync(id);
 
             if (user == null)
             {
@@ -66,6 +75,7 @@ namespace UserWebApi.Controllers
         }
 
         
+        //-----------------------------REGISTER-------------------------
         [HttpPost]
         public async Task<ActionResult> Create(User user)
         {
@@ -197,7 +207,34 @@ namespace UserWebApi.Controllers
             return Ok("Avatar updated successfully.");
         }
 
+        [HttpGet("confirm-email")]
+        public async Task<IActionResult> ConfirmEmail(string email)
+        {
+            // Tìm người dùng dựa trên email
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
 
+            if (user == null)
+            {
+                return BadRequest("Email not found.");
+            }
+
+            // Kiểm tra nếu người dùng đã xác thực trước đó
+            // Nếu TimeJoin là mặc định (ngày 1/1/0001) hoặc là 2010-10-10, thì cập nhật
+            if (user.TimeJoin == default(DateTime) || user.TimeJoin == new DateTime(2010, 10, 10, 0, 0, 0))
+            {
+                // Cập nhật trường `TimeJoin` với thời gian hiện tại
+                user.TimeJoin = DateTime.UtcNow; // Gán thời gian hiện tại trực tiếp
+                _dbContext.Users.Update(user);
+                await _dbContext.SaveChangesAsync();
+
+                return Ok("Email confirmed successfully.");
+            }
+
+            return BadRequest("Email has already been confirmed.");
+        }
+
+        //-------------------------------LOGIN-------------------------------------
+        
         // POST: api/user/login
         [HttpPost("login")]
         public async Task<ActionResult> Login([FromBody] LoginRequest loginRequest)
@@ -207,17 +244,35 @@ namespace UserWebApi.Controllers
                 return BadRequest("Email and password are required.");
             }
 
+            // Kiểm tra số lần đăng nhập sai
+            if (!loginAttempts.ContainsKey(loginRequest.Email))
+            {
+                loginAttempts[loginRequest.Email] = 0;
+            }
+
             var user = await _dbContext.Users.SingleOrDefaultAsync(u => u.Email == loginRequest.Email);
 
             if (user == null || user.Password != loginRequest.Password)
             {
-                return Unauthorized(); 
+                loginAttempts[loginRequest.Email]++; // Tăng số lần đăng nhập sai
+                return Unauthorized();
             }
-            // Lưu userId vào Session
+
+            // Reset số lần đăng nhập khi thành công
+            loginAttempts[loginRequest.Email] = 0;
+
+            // Kiểm tra xác thực email
+            if (user.TimeJoin == new DateTime(2010, 10, 10, 0, 0, 0, DateTimeKind.Utc))
+            {
+                return BadRequest("Email not verified.");
+            }
+
+            // Lưu userId vào session
             HttpContext.Session.SetString("UserId", user.Id.ToString());
 
             return Ok(new { message = "Login successful", userId = user.Id });
         }
+
         [HttpGet("sessionInfo")]
         public IActionResult GetSessionInfo()
         {
@@ -230,11 +285,11 @@ namespace UserWebApi.Controllers
 
             return Ok(new { userId });
         }
-        
+
+        // ------------------FORGET PASSWORD---------------        
         [HttpPost("forgetpassword")]
         public async Task<ActionResult> ForgetPassword([FromBody] ForgetPasswordRequest forgetPasswordRequest)
         {
-            
             if (string.IsNullOrEmpty(forgetPasswordRequest.Email))
             {
                 return BadRequest("Email is required.");
@@ -248,13 +303,117 @@ namespace UserWebApi.Controllers
                 return NotFound("User not found.");
             }
 
-            // Console.WriteLine("heheheasdfdfkfkfkfkldcaigidodaidai===jdk=========================================================");
-            
             // Gửi mật khẩu hiện tại của người dùng qua email
             var emailBody = $"Your current password is: {user.Password}";
             await _emailService.SendEmailAsync(user.Email, "Your Password", emailBody);
 
             return Ok("Password has been sent to your email.");
+        }
+
+        // -----------------------DELETE USER --------------------------------------------
+        // Phương thức xóa người dùng theo email
+        [HttpDelete("delete-user")]
+        public async Task<IActionResult> DeleteUser(string email)
+        {
+            // Tìm người dùng dựa trên email
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+            if (user == null)
+            {
+                return NotFound("User not found.");
+            }
+
+            // Xóa người dùng
+            _dbContext.Users.Remove(user);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok("User deleted successfully.");
+        }
+        
+        // PUT: api/user/5
+        [HttpPut("{id}")]
+        public async Task<ActionResult> UpdateUser(int id, [FromBody] User userUpdate)
+        {
+            var user = await _dbContext.Users.FindAsync(id);
+
+            if (user == null)
+            {
+                return NotFound("Could not find user with id: " + id); 
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Name))
+            {
+                user.Name = userUpdate.Name;
+            }
+
+            if (userUpdate.Birth != default)
+            {
+                user.Birth = userUpdate.Birth;
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Avt))
+            {
+                user.Avt = userUpdate.Avt;
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Phone))
+            {
+                user.Phone = userUpdate.Phone;
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Email))
+            {
+                user.Email = userUpdate.Email;
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Gender))
+            {
+                user.Gender = userUpdate.Gender;
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Desc))
+            {
+                user.Desc = userUpdate.Desc;
+            }
+
+            if (userUpdate.IsOnline != user.IsOnline) 
+            {
+                user.IsOnline = userUpdate.IsOnline;
+            }
+
+            if (userUpdate.LastActive != default) 
+            {
+                user.LastActive = userUpdate.LastActive;
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Address))
+            {
+                user.Address = userUpdate.Address;
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Social))
+            {
+                user.Social = userUpdate.Social;
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Education))
+            {
+                user.Education = userUpdate.Education;
+            }
+
+            if (!string.IsNullOrEmpty(userUpdate.Relationship))
+            {
+                user.Relationship = userUpdate.Relationship;
+            }
+
+            if (userUpdate.TimeJoin != default) 
+            {
+                user.TimeJoin = userUpdate.TimeJoin;
+            }
+
+            await _dbContext.SaveChangesAsync(); 
+
+            return Ok(user); 
         }
     }
 }

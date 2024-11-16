@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using ContactWebApi.Models;
+using ContactWebApi.Repositories;
+using ContactWebApi.Utils;
 
 namespace ContactWebApi.Controllers
 {
@@ -8,102 +9,126 @@ namespace ContactWebApi.Controllers
     [ApiController]
     public class MessageController : ControllerBase
     {
-        private readonly ContactDbContext _context;
+        private readonly IMessageRepository _messageRepository;
 
-        public MessageController(ContactDbContext context)
+        public MessageController(IMessageRepository messageRepository)
         {
-            _context = context;
+            _messageRepository = messageRepository;
         }
 
-        // GET: api/Message/UserMessages/{userId}/latest
-        [HttpGet("UserMessages/{userId}/latest")]
-        public async Task<ActionResult<IEnumerable<Message>>> GetUserMessages(int userId)
-        {
-            var latestMessages = await _context.Messages
-                .Where(m => m.Sender == userId || m.Receiver == userId)
-                .GroupBy(m => new { 
-                    Sender = m.Sender == userId ? m.Receiver : m.Sender, 
-                    Receiver = m.Sender == userId ? m.Sender : m.Receiver 
-                }) // Nhóm theo Sender và Receiver, đảo ngược nếu cần
-                .Select(g => g.OrderByDescending(m => m.CreatedAt).FirstOrDefault()) // Lấy tin nhắn mới nhất trong mỗi nhóm
-                .ToListAsync();
-
-            if (!latestMessages.Any())
-            {
-                return NotFound("No messages found for the given user.");
-            }
-
-            return Ok(latestMessages);
-        }
-        
-        // GET: api/Message/UserMessages/{userId}/{contactId}
-        [HttpGet("UserMessages/{userId}/{contactId}")]
-        public async Task<ActionResult<IEnumerable<Message>>> GetUserMessagesByContactId(int userId, int contactId)
-        {
-            var messages = await _context.Messages
-                .Where(m => m.Sender == userId && m.Receiver == contactId 
-                            || m.Receiver == userId && m.Sender == contactId)
-                .OrderBy(m => m.CreatedAt)
-                .ToListAsync();
-
-            if (!messages.Any())
-            {
-                return NotFound("No messages found for the given user.");
-            }
-
-            return Ok(messages);
-        }
-        
         // GET: api/Message
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Message>>> GetMessages()
         {
-            return await _context.Messages.ToListAsync();
+            var messages = await _messageRepository.GetAllAsync();
+
+            if (messages == null)
+            {
+                return NotFound();
+            }
+
+            List<Message> messagesList = new List<Message>();
+
+            foreach (var message in messages)
+            {
+                message.Content = EncryptData.Decrypt(message.Content);
+                messagesList.Add(message);
+            }
+            
+            return Ok(messagesList);
         }
 
         // GET: api/Message/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Message>> GetMessage(int id)
         {
-            var message = await _context.Messages.FindAsync(id);
+            var message = await _messageRepository.GetByIdAsync(id);
 
             if (message == null)
             {
                 return NotFound();
             }
 
+            message.Content = EncryptData.Decrypt(message.Content);
+            
             return message;
         }
 
-        // PUT: api/Message/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutMessage(int id, Message message)
+        
+        // GET: api/Message/UserMessages/{userId}/latest
+        [HttpGet("UserMessages/{userId}/latest")]
+        public async Task<ActionResult<IEnumerable<Message>>> GetUserMessages(int userId)
         {
-            if (id != message.Id)
-            {
-                return BadRequest();
-            }
+            var latestMessages = await _messageRepository.GetLatestMsg(userId);
 
-            _context.Entry(message).State = EntityState.Modified;
-
-            try
+            if (latestMessages == null)
             {
-                await _context.SaveChangesAsync();
+                return NotFound("No messages found for the given user.");
             }
-            catch (DbUpdateConcurrencyException)
+            
+            List<Message> messagesList = new List<Message>();
+
+            foreach (var message in latestMessages)
             {
-                if (!MessageExists(id))
+                message.Content = EncryptData.Decrypt(message.Content);
+                messagesList.Add(message);
+            }
+            
+            return Ok(messagesList);
+        }
+        
+        // GET: api/Message/UserMessages/{userId}/{contactId}
+        [HttpGet("UserMessages/{userId}/{contactId}")]
+        public async Task<ActionResult<IEnumerable<Message>>> GetUserMessagesByContactId(
+            int userId, 
+            int contactId,
+            [FromQuery] string cursor = "",
+            [FromQuery] int pageSize = 10
+            )
+        {
+            string? createdAt = null, id = null;
+            // Decode the cursor if provided
+            if (!string.IsNullOrEmpty(cursor))
+            {
+                try
                 {
-                    return NotFound();
+                    string[] splitCursor = EncryptData.Decrypt(cursor).Split('&');
+                    createdAt = splitCursor[0];
+                    id = splitCursor[1];
                 }
-                else
+                catch (Exception)
                 {
-                    throw;
+                    return BadRequest("Invalid cursor format.");
                 }
             }
+            
+            var messages = await _messageRepository
+                .GetConversationMessages(userId, contactId, pageSize, id, createdAt);
+            
+            if (messages == null)
+            {
+                return NotFound("No messages found for the given user.");
+            }
+            
+            List<Message> result = new List<Message>();
 
-            return NoContent();
+            foreach (var message in messages)
+            {
+                message.Content = EncryptData.Decrypt(message.Content);
+                result.Add(message);
+            }
+            
+            // Encode the cursor for the last message in the current result
+            var lastMessage = result.Last();
+            var newCursor = EncryptData.Encrypt(
+                lastMessage.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss") +
+                "&" + lastMessage.Id);
+            
+            return Ok(new
+            {
+                messages = result,
+                cursor = newCursor
+            });
         }
 
         // POST: api/Message
@@ -111,31 +136,11 @@ namespace ContactWebApi.Controllers
         [HttpPost]
         public async Task<ActionResult<Message>> PostMessage(Message message)
         {
-            _context.Messages.Add(message);
-            await _context.SaveChangesAsync();
+            message.Content = EncryptData.Encrypt(message.Content);
+            
+            await _messageRepository.AddAsync(message);
 
             return CreatedAtAction("GetMessage", new { id = message.Id }, message);
-        }
-
-        // DELETE: api/Message/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteMessage(int id)
-        {
-            var message = await _context.Messages.FindAsync(id);
-            if (message == null)
-            {
-                return NotFound();
-            }
-
-            _context.Messages.Remove(message);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool MessageExists(int id)
-        {
-            return _context.Messages.Any(e => e.Id == id);
         }
     }
 }

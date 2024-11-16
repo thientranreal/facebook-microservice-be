@@ -234,6 +234,22 @@ namespace PostWebApi.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+        
+        [HttpGet("post-noti/{id}")]
+        public async Task<IActionResult> GetPostById(int id)
+        {
+            var post = await _dbContext.Posts
+                .Include(p => p.Comments)
+                .Include(p => p.Reactions)
+                .FirstOrDefaultAsync(p => p.id == id);
+
+            if (post == null)
+            {
+                return NotFound(new { message = "Post not found" });
+            }
+
+            return Ok(post);
+        }
     }
 
 }
