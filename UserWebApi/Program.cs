@@ -27,6 +27,8 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
+builder.Services.AddHttpClient();
+
 // =========================================
 // Enable CORS to allow access from React (modify origin as needed)
 builder.Services.AddCors(options =>
