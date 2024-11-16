@@ -41,24 +41,30 @@ namespace UserWebApi.Controllers
             return user;
         }
 
-        // GET: api/user/search?name=John
+        // GET: api/user/search?name=John&limit=10
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<User>>> SearchUsersByName(string name)
+        public async Task<ActionResult<IEnumerable<User>>> SearchUsersByName(string name, int? limit)
         {
             if (string.IsNullOrEmpty(name))
             {
                 return BadRequest("Không tìm thấy name parameter!");
             }
+
+            int resultsLimit = limit ?? 10;
+
             var users = await _dbContext.Users
-                .Where(u => u.Name.Contains(name)) 
+                .Where(u => u.Name.Contains(name))
+                .Take(resultsLimit) 
                 .ToListAsync();
 
             if (users == null || users.Count == 0)
             {
                 return NotFound("Không tìm thấy user với tên: " + name);
             }
+
             return Ok(users);
         }
+
         
         [HttpPost]
         public async Task<ActionResult> Create(User user)
@@ -169,6 +175,27 @@ namespace UserWebApi.Controllers
             return Ok(user);
         }
 
+        // PUT: api/user/upload?userId=1
+        [HttpPut("upload")]
+        public async Task<ActionResult> UpdateAvatar([FromQuery] int userId, [FromBody] AvatarUpdateRequest request)
+        {
+            if (string.IsNullOrEmpty(request.ImageUrl))
+            {
+                return BadRequest("Image URL is required.");
+            }
+
+            var user = await _dbContext.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound("User not found.");
+            }
+
+            user.Avt = request.ImageUrl;
+
+            await _dbContext.SaveChangesAsync();
+
+            return Ok("Avatar updated successfully.");
+        }
 
 
         // POST: api/user/login

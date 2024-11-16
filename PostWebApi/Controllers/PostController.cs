@@ -74,7 +74,7 @@ namespace PostWebApi.Controllers
            }
        
            return Ok(posts);
-       }
+        }
 
 
         //POST : api/post
@@ -188,17 +188,20 @@ namespace PostWebApi.Controllers
 
         
 
-        // GET: api/post/search?content=example
+        // GET: api/post/search?content=example&limit=10
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<Post>>> SearchPostsByContent(string content)
+        public async Task<ActionResult<IEnumerable<Post>>> SearchPostsByContent(string content, int? limit)
         {
             if (string.IsNullOrEmpty(content))
             {
                 return BadRequest("Content parameter is required.");
             }
 
+            int resultsLimit = limit ?? 10;
+
             var posts = await _dbContext.Posts
                 .Where(post => post.content.Contains(content))
+                .Take(resultsLimit) 
                 .ToListAsync();
 
             if (posts == null || posts.Count == 0)
@@ -208,5 +211,29 @@ namespace PostWebApi.Controllers
 
             return Ok(posts); 
         }
+
+
+        // thêm hàm này để upload avatar bên profile 
+        // POST: api/post/uploadImage
+        [HttpPost("uploadImage")]
+        public async Task<ActionResult<string>> UploadImageForProfile([FromForm] IFormFile? imageFile)
+        {
+            if (imageFile == null || imageFile.Length == 0)
+            {
+                return BadRequest("Image file is required.");
+            }
+
+            try
+            {
+                string imageUrl = await UploadImageAsync(imageFile);
+                
+                return Ok(new { imageUrl });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
     }
+
 }
