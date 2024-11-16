@@ -94,5 +94,35 @@ namespace RequestWebApi.Controllers
 
             return NoContent();
         }
+
+        // GET: api/Request/1/1
+        [HttpGet("{curUserId}/{userId}")]
+        public async Task<ActionResult<IEnumerable<Request>>> GetRequestsByCurrentUserIdAndUser(int curUserId, int userId)
+        {
+            // Lọc các Request mà SenderId hoặc ReceiverId bằng id
+            var requests = await _dbContext.Requests
+                .Where(r => r.Sender == userId && r.Receiver == curUserId)
+                .ToListAsync();
+
+            // Nếu không có dữ liệu, trả về mảng rỗng
+            return Ok(requests);
+        }
+        // DELETE: api/Request/delete?senderId=1&receiverId=2
+        [HttpDelete("delete")]
+        public async Task<IActionResult> DeleteRequestBySenderAndReceiver(int senderId, int receiverId)
+        {
+            var request = await _dbContext.Requests
+                .FirstOrDefaultAsync(r => r.Sender == senderId && r.Receiver == receiverId);
+
+            if (request == null)
+            {
+                return NotFound(new { message = "Request not found" });
+            }
+
+            _dbContext.Requests.Remove(request);
+            await _dbContext.SaveChangesAsync();
+
+            return NoContent();
+        }
     }
 }

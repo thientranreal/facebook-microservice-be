@@ -106,7 +106,25 @@ namespace UserWebApi.Controllers
         }
         
         
-        
+        // GET: api/friend/{userId1}/{userId2}
+        [HttpGet("{userId1}/{userId2}")]
+        public async Task<ActionResult<Friend>> GetFriendshipBetweenTwoUsers(int userId1, int userId2)
+        {
+            // Kiểm tra mối quan hệ bạn bè giữa userId1 và userId2
+            var friendship = await _dbContext.Friends
+                .Include(f => f.User1) // Include để lấy chi tiết User1
+                .Include(f => f.User2) // Include để lấy chi tiết User2
+                .FirstOrDefaultAsync(f => 
+                    (f.UserId1 == userId1 && f.UserId2 == userId2) || 
+                    (f.UserId1 == userId2 && f.UserId2 == userId1));
+
+            if (friendship == null)
+            {
+                return NotFound("Không tìm thấy mối quan hệ bạn bè giữa hai người dùng.");
+            }
+
+            return Ok(friendship);
+        }
         
         
         // [HttpGet("nonfriends/{userId}")]
