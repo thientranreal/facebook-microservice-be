@@ -19,6 +19,7 @@ namespace UserWebApi.Controllers
             _httpClientFactory = httpClientFactory;
         }
 
+        // lấy tất cả mối quan hệ trong bảng friend
         // GET: api/friend
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Friend>>> GetAllFriends()
@@ -42,7 +43,8 @@ namespace UserWebApi.Controllers
 
             if (friendRelationships == null || friendRelationships.Count == 0)
             {
-                return NotFound("Hiện không có bất kỳ bạn bè nào.");
+                // return NotFound("Hiện không có bất kỳ bạn bè nào.");
+                return Ok(new List<User>());
             }
 
             // Lấy danh sách bạn bè từ mối quan hệ
@@ -59,7 +61,7 @@ namespace UserWebApi.Controllers
         {
             if (friend == null || friend.UserId1 == friend.UserId2)
             {
-                return BadRequest("Không thể kết bạn !");
+                return BadRequest("Can not make a friend!");
             }
 
             // Kiểm tra nếu quan hệ bạn bè đã tồn tại
@@ -70,7 +72,7 @@ namespace UserWebApi.Controllers
 
             if (existingFriendship != null)
             {
-                return Conflict("Bạn đã tồn tại !");
+                return Conflict("They already was your friend !");
             }
             _dbContext.Friends.Add(friend);
             await _dbContext.SaveChangesAsync();
@@ -102,6 +104,57 @@ namespace UserWebApi.Controllers
 
             return Ok("Quan hệ bạn bè đã được xóa thành công.");
         }
+        
+        
+        // GET: api/friend/{userId1}/{userId2}
+        [HttpGet("{userId1}/{userId2}")]
+        public async Task<ActionResult<Friend>> GetFriendshipBetweenTwoUsers(int userId1, int userId2)
+        {
+            // Kiểm tra mối quan hệ bạn bè giữa userId1 và userId2
+            var friendship = await _dbContext.Friends
+                .Include(f => f.User1) // Include để lấy chi tiết User1
+                .Include(f => f.User2) // Include để lấy chi tiết User2
+                .FirstOrDefaultAsync(f => 
+                    (f.UserId1 == userId1 && f.UserId2 == userId2) || 
+                    (f.UserId1 == userId2 && f.UserId2 == userId1));
+
+            if (friendship == null)
+            {
+                return NotFound("Không tìm thấy mối quan hệ bạn bè giữa hai người dùng.");
+            }
+
+            return Ok(friendship);
+        }
+        
+        
+        // [HttpGet("nonfriends/{userId}")]
+        // public async Task<IActionResult> GetNonFriends(int userId)
+        // {
+        //     var httpClient = _httpClientFactory.CreateClient();
+        //     var url = $"http://requestwebapi:8080/api/request/{userId}"; // Gọi API `requestwebapi` với userId đúng
+        //
+        //     // Gửi yêu cầu GET tới API `requestwebapi`
+        //     var httpResponseMessage = await httpClient.GetAsync(url);
+        //
+        //     // Kiểm tra xem yêu cầu có thành công hay không
+        //     if (httpResponseMessage.IsSuccessStatusCode)
+        //     {
+        //         // Đọc nội dung phản hồi từ HTTP response
+        //         var content = await httpResponseMessage.Content.ReadAsStringAsync();
+        //
+        //         // Deserialize vào danh sách Request (thay vì dynamic)
+        //         var friendRequests = JsonConvert.DeserializeObject<List<Request>>(content);
+        //
+        //         // Trả về danh sách friendRequests dưới dạng HTTP response
+        //         return Ok(friendRequests);
+        //     }
+        //     else
+        //     {
+        //         // Nếu có lỗi, trả về mã lỗi và thông báo
+        //         return StatusCode((int)httpResponseMessage.StatusCode, "Failed to get non-friends data.");
+        //     }
+        // }
+
 
         
         [HttpGet("nonfriends/{userId}")]
