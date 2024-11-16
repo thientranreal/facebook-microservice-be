@@ -1,4 +1,5 @@
 using ContactWebApi;
+using ContactWebApi.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +15,8 @@ var dbPassword = Environment.GetEnvironmentVariable("DB_ROOT_PASSWORD");
 var connectionString = $"server={dbHost};port=3306;database={dbName};user=root;password={dbPassword}";
 builder.Services.AddDbContext<ContactDbContext>(o => o.UseMySQL(connectionString));
 // =========================================
+
+builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 
 var app = builder.Build();
 

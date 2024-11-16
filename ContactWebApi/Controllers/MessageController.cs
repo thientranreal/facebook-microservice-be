@@ -1,7 +1,7 @@
-using System.Text;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using ContactWebApi.Models;
+using ContactWebApi.Repositories;
+using ContactWebApi.Utils;
 
 namespace ContactWebApi.Controllers
 {
@@ -9,32 +9,72 @@ namespace ContactWebApi.Controllers
     [ApiController]
     public class MessageController : ControllerBase
     {
-        private readonly ContactDbContext _context;
+        private readonly IMessageRepository _messageRepository;
 
-        public MessageController(ContactDbContext context)
+        public MessageController(IMessageRepository messageRepository)
         {
-            _context = context;
+            _messageRepository = messageRepository;
         }
 
+        // GET: api/Message
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Message>>> GetMessages()
+        {
+            var messages = await _messageRepository.GetAllAsync();
+
+            if (messages == null)
+            {
+                return NotFound();
+            }
+
+            List<Message> messagesList = new List<Message>();
+
+            foreach (var message in messages)
+            {
+                message.Content = EncryptData.Decrypt(message.Content);
+                messagesList.Add(message);
+            }
+            
+            return Ok(messagesList);
+        }
+
+        // GET: api/Message/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Message>> GetMessage(int id)
+        {
+            var message = await _messageRepository.GetByIdAsync(id);
+
+            if (message == null)
+            {
+                return NotFound();
+            }
+
+            message.Content = EncryptData.Decrypt(message.Content);
+            
+            return message;
+        }
+
+        
         // GET: api/Message/UserMessages/{userId}/latest
         [HttpGet("UserMessages/{userId}/latest")]
         public async Task<ActionResult<IEnumerable<Message>>> GetUserMessages(int userId)
         {
-            var latestMessages = await _context.Messages
-                .Where(m => m.Sender == userId || m.Receiver == userId)
-                .GroupBy(m => new { 
-                    Sender = m.Sender == userId ? m.Receiver : m.Sender, 
-                    Receiver = m.Sender == userId ? m.Sender : m.Receiver 
-                }) // Nhóm theo Sender và Receiver, đảo ngược nếu cần
-                .Select(g => g.OrderByDescending(m => m.CreatedAt).FirstOrDefault()) // Lấy tin nhắn mới nhất trong mỗi nhóm
-                .ToListAsync();
+            var latestMessages = await _messageRepository.GetLatestMsg(userId);
 
-            if (!latestMessages.Any())
+            if (latestMessages == null)
             {
                 return NotFound("No messages found for the given user.");
             }
+            
+            List<Message> messagesList = new List<Message>();
 
-            return Ok(latestMessages);
+            foreach (var message in latestMessages)
+            {
+                message.Content = EncryptData.Decrypt(message.Content);
+                messagesList.Add(message);
+            }
+            
+            return Ok(messagesList);
         }
         
         // GET: api/Message/UserMessages/{userId}/{contactId}
@@ -42,19 +82,17 @@ namespace ContactWebApi.Controllers
         public async Task<ActionResult<IEnumerable<Message>>> GetUserMessagesByContactId(
             int userId, 
             int contactId,
-            [FromQuery] String cursor = "",
+            [FromQuery] string cursor = "",
             [FromQuery] int pageSize = 10
             )
         {
-            String createdAt = "", id = "";
+            string? createdAt = null, id = null;
             // Decode the cursor if provided
             if (!string.IsNullOrEmpty(cursor))
             {
                 try
                 {
-                    var decodedBytes = Convert.FromBase64String(cursor);
-                    String decodedCursor = Encoding.UTF8.GetString(decodedBytes);
-                    String[] splitCursor = decodedCursor.Split('&');
+                    string[] splitCursor = EncryptData.Decrypt(cursor).Split('&');
                     createdAt = splitCursor[0];
                     id = splitCursor[1];
                 }
@@ -63,106 +101,34 @@ namespace ContactWebApi.Controllers
                     return BadRequest("Invalid cursor format.");
                 }
             }
-
-            string sqlQuery;
-            List<Message> messages;
-
-            if (!string.IsNullOrEmpty(createdAt))
-            {
-                sqlQuery = @"
-                    SELECT * FROM Messages
-                    WHERE (Sender = {0} AND Receiver = {1}
-                               OR Receiver = {0} AND Sender = {1})
-                    AND (CreatedAt = {2} AND Id < {3} OR CreatedAt < {2})
-                    ORDER BY CreatedAt DESC, Id DESC 
-                    LIMIT {4}";
-                
-                messages = await _context.Messages
-                    .FromSqlRaw(sqlQuery, userId, contactId, createdAt, id, pageSize)
-                    .ToListAsync();
-            }
-            else
-            {
-                sqlQuery = @"
-                SELECT * FROM Messages
-                WHERE (Sender = {0} AND Receiver = {1}
-                           OR Receiver = {0} AND Sender = {1})
-                ORDER BY CreatedAt DESC, Id DESC 
-                LIMIT {2}";
-                
-                messages = await _context.Messages
-                    .FromSqlRaw(sqlQuery, userId, contactId, pageSize)
-                    .ToListAsync();
-            }
-
-            if (!messages.Any())
+            
+            var messages = await _messageRepository
+                .GetConversationMessages(userId, contactId, pageSize, id, createdAt);
+            
+            if (messages == null)
             {
                 return NotFound("No messages found for the given user.");
             }
             
+            List<Message> result = new List<Message>();
+
+            foreach (var message in messages)
+            {
+                message.Content = EncryptData.Decrypt(message.Content);
+                result.Add(message);
+            }
+            
             // Encode the cursor for the last message in the current result
-            var lastMessage = messages.Last();
-            var newCursor = Convert.ToBase64String(
-                Encoding.UTF8.GetBytes(
-                    lastMessage.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss") + "&" + lastMessage.Id));
+            var lastMessage = result.Last();
+            var newCursor = EncryptData.Encrypt(
+                lastMessage.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss") +
+                "&" + lastMessage.Id);
             
             return Ok(new
             {
-                messages,
+                messages = result,
                 cursor = newCursor
             });
-        }
-        
-        // GET: api/Message
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Message>>> GetMessages()
-        {
-            return await _context.Messages.ToListAsync();
-        }
-
-        // GET: api/Message/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Message>> GetMessage(int id)
-        {
-            var message = await _context.Messages.FindAsync(id);
-
-            if (message == null)
-            {
-                return NotFound();
-            }
-
-            return message;
-        }
-
-        // PUT: api/Message/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutMessage(int id, Message message)
-        {
-            if (id != message.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(message).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!MessageExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
         }
 
         // POST: api/Message
@@ -170,31 +136,11 @@ namespace ContactWebApi.Controllers
         [HttpPost]
         public async Task<ActionResult<Message>> PostMessage(Message message)
         {
-            _context.Messages.Add(message);
-            await _context.SaveChangesAsync();
+            message.Content = EncryptData.Encrypt(message.Content);
+            
+            await _messageRepository.AddAsync(message);
 
             return CreatedAtAction("GetMessage", new { id = message.Id }, message);
-        }
-
-        // DELETE: api/Message/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteMessage(int id)
-        {
-            var message = await _context.Messages.FindAsync(id);
-            if (message == null)
-            {
-                return NotFound();
-            }
-
-            _context.Messages.Remove(message);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool MessageExists(int id)
-        {
-            return _context.Messages.Any(e => e.Id == id);
         }
     }
 }

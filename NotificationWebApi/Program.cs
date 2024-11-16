@@ -1,7 +1,7 @@
 using System.Net.WebSockets;
 using Microsoft.EntityFrameworkCore;
 using NotificationWebApi;
-using NotificationWebApi.Hubs;
+using NotificationWebApi.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,23 +16,20 @@ var dbPassword = Environment.GetEnvironmentVariable("DB_ROOT_PASSWORD");
 
 var connectionString = $"server={dbHost};port=3306;database={dbName};user=root;password={dbPassword}";
 builder.Services.AddDbContext<NotificationDbContext>(o => o.UseMySQL(connectionString));
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+
 //=========================================
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-
-app.UseAuthorization();
-
-app.MapControllers();
 
 
 app.UseRouting();
+app.UseAuthorization();
 
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapControllers();
-    endpoints.MapHub<NotificationHub>("/notificationHub");
 });
 
 app.Run();
