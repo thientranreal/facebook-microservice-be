@@ -50,9 +50,9 @@ namespace UserWebApi.Controllers
             return user;
         }
 
-        // GET: api/user/search?name=John&limit=10
+        // GET: api/user/search?name=John&limit=10&offset=0
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<User>>> SearchUsersByName(string name, int? limit)
+        public async Task<ActionResult<IEnumerable<User>>> SearchUsersByName(string name, int? limit, int? offset)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -60,10 +60,12 @@ namespace UserWebApi.Controllers
             }
 
             int resultsLimit = limit ?? 10;
+            int resultsOffset = offset ?? 0;
 
             var users = await _dbContext.Users
                 .Where(u => u.Name.Contains(name))
-                .Take(resultsLimit) 
+                .Skip(resultsOffset) // Bỏ qua số lượng bản ghi dựa trên offset
+                .Take(resultsLimit)  // Lấy số lượng bản ghi dựa trên limit
                 .ToListAsync();
 
             if (users == null || users.Count == 0)
@@ -74,7 +76,6 @@ namespace UserWebApi.Controllers
             return Ok(users);
         }
 
-        
         //-----------------------------REGISTER-------------------------
         [HttpPost]
         public async Task<ActionResult> Create(User user)
@@ -328,92 +329,6 @@ namespace UserWebApi.Controllers
             await _dbContext.SaveChangesAsync();
 
             return Ok("User deleted successfully.");
-        }
-        
-        // PUT: api/user/5
-        [HttpPut("{id}")]
-        public async Task<ActionResult> UpdateUser(int id, [FromBody] User userUpdate)
-        {
-            var user = await _dbContext.Users.FindAsync(id);
-
-            if (user == null)
-            {
-                return NotFound("Could not find user with id: " + id); 
-            }
-
-            if (!string.IsNullOrEmpty(userUpdate.Name))
-            {
-                user.Name = userUpdate.Name;
-            }
-
-            if (userUpdate.Birth != default)
-            {
-                user.Birth = userUpdate.Birth;
-            }
-
-            if (!string.IsNullOrEmpty(userUpdate.Avt))
-            {
-                user.Avt = userUpdate.Avt;
-            }
-
-            if (!string.IsNullOrEmpty(userUpdate.Phone))
-            {
-                user.Phone = userUpdate.Phone;
-            }
-
-            if (!string.IsNullOrEmpty(userUpdate.Email))
-            {
-                user.Email = userUpdate.Email;
-            }
-
-            if (!string.IsNullOrEmpty(userUpdate.Gender))
-            {
-                user.Gender = userUpdate.Gender;
-            }
-
-            if (!string.IsNullOrEmpty(userUpdate.Desc))
-            {
-                user.Desc = userUpdate.Desc;
-            }
-
-            if (userUpdate.IsOnline != user.IsOnline) 
-            {
-                user.IsOnline = userUpdate.IsOnline;
-            }
-
-            if (userUpdate.LastActive != default) 
-            {
-                user.LastActive = userUpdate.LastActive;
-            }
-
-            if (!string.IsNullOrEmpty(userUpdate.Address))
-            {
-                user.Address = userUpdate.Address;
-            }
-
-            if (!string.IsNullOrEmpty(userUpdate.Social))
-            {
-                user.Social = userUpdate.Social;
-            }
-
-            if (!string.IsNullOrEmpty(userUpdate.Education))
-            {
-                user.Education = userUpdate.Education;
-            }
-
-            if (!string.IsNullOrEmpty(userUpdate.Relationship))
-            {
-                user.Relationship = userUpdate.Relationship;
-            }
-
-            if (userUpdate.TimeJoin != default) 
-            {
-                user.TimeJoin = userUpdate.TimeJoin;
-            }
-
-            await _dbContext.SaveChangesAsync(); 
-
-            return Ok(user); 
         }
     }
 }

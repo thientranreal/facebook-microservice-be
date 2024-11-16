@@ -188,9 +188,9 @@ namespace PostWebApi.Controllers
 
         
 
-        // GET: api/post/search?content=example&limit=10
+        // GET: api/post/search?content=example&limit=10&offset=0
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<Post>>> SearchPostsByContent(string content, int? limit)
+        public async Task<ActionResult<IEnumerable<Post>>> SearchPostsByContent(string content, int? limit, int? offset)
         {
             if (string.IsNullOrEmpty(content))
             {
@@ -198,10 +198,12 @@ namespace PostWebApi.Controllers
             }
 
             int resultsLimit = limit ?? 10;
+            int resultsOffset = offset ?? 0;
 
             var posts = await _dbContext.Posts
                 .Where(post => post.content.Contains(content))
-                .Take(resultsLimit) 
+                .Skip(resultsOffset) // Bỏ qua số lượng bản ghi dựa trên offset
+                .Take(resultsLimit)  // Lấy số lượng bản ghi dựa trên limit
                 .ToListAsync();
 
             if (posts == null || posts.Count == 0)
@@ -211,6 +213,7 @@ namespace PostWebApi.Controllers
 
             return Ok(posts); 
         }
+
 
 
         // thêm hàm này để upload avatar bên profile 
@@ -234,7 +237,7 @@ namespace PostWebApi.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
-        
+
         [HttpGet("post-noti/{id}")]
         public async Task<IActionResult> GetPostById(int id)
         {
