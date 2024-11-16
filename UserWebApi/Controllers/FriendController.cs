@@ -102,39 +102,6 @@ namespace UserWebApi.Controllers
 
             return Ok("Quan hệ bạn bè đã được xóa thành công.");
         }
-        
-        
-        
-        
-        
-        // [HttpGet("nonfriends/{userId}")]
-        // public async Task<IActionResult> GetNonFriends(int userId)
-        // {
-        //     var httpClient = _httpClientFactory.CreateClient();
-        //     var url = $"http://requestwebapi:8080/api/request/{userId}"; // Gọi API `requestwebapi` với userId đúng
-        //
-        //     // Gửi yêu cầu GET tới API `requestwebapi`
-        //     var httpResponseMessage = await httpClient.GetAsync(url);
-        //
-        //     // Kiểm tra xem yêu cầu có thành công hay không
-        //     if (httpResponseMessage.IsSuccessStatusCode)
-        //     {
-        //         // Đọc nội dung phản hồi từ HTTP response
-        //         var content = await httpResponseMessage.Content.ReadAsStringAsync();
-        //
-        //         // Deserialize vào danh sách Request (thay vì dynamic)
-        //         var friendRequests = JsonConvert.DeserializeObject<List<Request>>(content);
-        //
-        //         // Trả về danh sách friendRequests dưới dạng HTTP response
-        //         return Ok(friendRequests);
-        //     }
-        //     else
-        //     {
-        //         // Nếu có lỗi, trả về mã lỗi và thông báo
-        //         return StatusCode((int)httpResponseMessage.StatusCode, "Failed to get non-friends data.");
-        //     }
-        // }
-
 
         
         [HttpGet("nonfriends/{userId}")]
@@ -179,14 +146,6 @@ namespace UserWebApi.Controllers
             // Trả về danh sách người dùng không phải bạn và không có yêu cầu kết bạn
             return Ok(nonFriends);
         }
-
-        
-        
-        
-        
-        
-        
-        
         
         // POST: api/friend/create-and-delete-request
         [HttpPost("create-and-delete-request")]
@@ -213,7 +172,7 @@ namespace UserWebApi.Controllers
 
             // Bắt đầu transaction của Saga
             var transactionSuccessful = false;
-            var errorMessage = string.Empty;
+            var errorStatus =0;
 
             // Bước 1: Tạo quan hệ bạn bè
             var friend = new Friend
@@ -232,8 +191,7 @@ namespace UserWebApi.Controllers
             }
             catch (Exception ex)
             {
-                errorMessage = $"Lỗi khi tạo quan hệ bạn bè: {ex.Message}";
-                return StatusCode(500, errorMessage);
+                return StatusCode(500);
             }
 
             // Bước 2: Xóa yêu cầu kết bạn (Friend Request) thông qua requestId
@@ -241,36 +199,41 @@ namespace UserWebApi.Controllers
             {
                 var requestClient = _httpClientFactory.CreateClient();
                 var deleteRequestUrl = $"http://requestwebapi:8080/api/request/{friendData.RequestId}"; // Gọi API để xóa yêu cầu kết bạn
-
                 try
                 {
                     var deleteResponse = await requestClient.DeleteAsync(deleteRequestUrl);
+        
                     if (deleteResponse.StatusCode == HttpStatusCode.NoContent) // 204 No Content
                     {
                         // Yêu cầu xóa thành công
                         transactionSuccessful = true;
                     }
+                    else if (deleteResponse.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        // Yêu cầu xóa không tìm thấy
+                        transactionSuccessful = false;
+                        errorStatus = 404; // Đặt errorStatus thành 404 khi không tìm thấy yêu cầu
+                    }
                     else
                     {
-                        // Nếu xóa yêu cầu kết bạn thất bại, thực hiện hành động bồi thường
+                        // Lỗi khác khi gọi API
                         transactionSuccessful = false;
-                        errorMessage = "Không thể xóa yêu cầu kết bạn, sẽ xóa quan hệ bạn bè.";
                     }
                 }
                 catch (Exception ex)
                 {
+                    // Nếu có lỗi trong quá trình gọi API
                     transactionSuccessful = false;
-                    errorMessage = $"Lỗi khi gọi API xóa yêu cầu kết bạn: {ex.Message}";
                 }
             }
 
-            // Nếu có lỗi ở Bước 2, hủy Bước 1
+// Nếu có lỗi ở Bước 2, hủy Bước 1
             if (!transactionSuccessful)
             {
-                // Bồi thường: Xóa quan hệ bạn bè đã tạo ở bước 1
+                // Hủy bỏ quan hệ bạn bè đã tạo ở Bước 1 nếu có lỗi ở Bước 2
                 var createdFriendship = await _dbContext.Friends
-                    .FirstOrDefaultAsync(f => 
-                        (f.UserId1 == friendData.UserId1 && f.UserId2 == friendData.UserId2) || 
+                    .FirstOrDefaultAsync(f =>
+                        (f.UserId1 == friendData.UserId1 && f.UserId2 == friendData.UserId2) ||
                         (f.UserId1 == friendData.UserId2 && f.UserId2 == friendData.UserId1));
 
                 if (createdFriendship != null)
@@ -279,11 +242,16 @@ namespace UserWebApi.Controllers
                     await _dbContext.SaveChangesAsync();
                 }
 
-                return StatusCode(500, errorMessage);
-            }
+                // Kiểm tra errorStatus để trả về mã trạng thái phù hợp
+                if (errorStatus == 404)
+                {
+                    return NotFound(new { message = "Không tìm thấy yêu cầu kết bạn để xóa." });
+                }
 
-            // Trả về kết quả thành công
-            return CreatedAtAction(nameof(GetAllFriends), new { id = friend.Id }, friend);
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xử lý yêu cầu." });
+            }
+            // Trả về kết quả thành công với mã trạng thái 204
+            return NoContent();
         }
         
     }
