@@ -15,7 +15,7 @@ namespace RequestWebApi.Controllers
             _dbContext = RequestDbContext;
         }
 
-        // GET: api/Request
+        // GET: api/Request/requests
         [HttpGet("requests")]
         public async Task<ActionResult<IEnumerable<Request>>> GetRequests(int? id, int pageNumber = 1, int pageSize = 20)
         {
@@ -49,26 +49,33 @@ namespace RequestWebApi.Controllers
         }
 
 
-        // GET: api/Request/5
+        // GET: api/Request/1
         [HttpGet("{id}")]
-        public async Task<ActionResult<Request>> GetRequest(int id)
+        public async Task<ActionResult<IEnumerable<Request>>> GetRequestsByUserId(int id)
         {
-            var @Request = await _dbContext.Requests.FindAsync(id);
+            Console.WriteLine($"API Gateway Error: {id}");
+            // Lọc các Request mà SenderId hoặc ReceiverId bằng id
+            var requests = await _dbContext.Requests
+                .Where(r => r.Sender == id || r.Receiver == id)
+                .ToListAsync();
 
-            if (@Request == null)
-            {
-                return NotFound();
-            }
-
-            return @Request;
+            // Nếu không có dữ liệu, trả về mảng rỗng
+            return Ok(requests);
         }
-        //http://localhost:8001/api/request
+        
+        // POST: http://localhost:8001/api/request
         [HttpPost]
-        public async Task<ActionResult> Create(Request Request)
+        public async Task<ActionResult> Create(Request request)
         {
-            await _dbContext.Requests.AddAsync(Request);
+            // Thêm đối tượng Request vào cơ sở dữ liệu
+            await _dbContext.Requests.AddAsync(request);
             await _dbContext.SaveChangesAsync();
-            return Ok();
+
+            // Lấy ID của Request vừa tạo
+            var createdRequestId = request.Id;
+
+            // Trả về ID của Request vừa tạo
+            return Ok(new { id = createdRequestId });
         }
         
         // DELETE: api/Request/5
@@ -80,6 +87,36 @@ namespace RequestWebApi.Controllers
             if (request == null)
             {
                 return NotFound();
+            }
+
+            _dbContext.Requests.Remove(request);
+            await _dbContext.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        // GET: api/Request/1/1
+        [HttpGet("{curUserId}/{userId}")]
+        public async Task<ActionResult<IEnumerable<Request>>> GetRequestsByCurrentUserIdAndUser(int curUserId, int userId)
+        {
+            // Lọc các Request mà SenderId hoặc ReceiverId bằng id
+            var requests = await _dbContext.Requests
+                .Where(r => r.Sender == userId && r.Receiver == curUserId)
+                .ToListAsync();
+
+            // Nếu không có dữ liệu, trả về mảng rỗng
+            return Ok(requests);
+        }
+        // DELETE: api/Request/delete?senderId=1&receiverId=2
+        [HttpDelete("delete")]
+        public async Task<IActionResult> DeleteRequestBySenderAndReceiver(int senderId, int receiverId)
+        {
+            var request = await _dbContext.Requests
+                .FirstOrDefaultAsync(r => r.Sender == senderId && r.Receiver == receiverId);
+
+            if (request == null)
+            {
+                return NotFound(new { message = "Request not found" });
             }
 
             _dbContext.Requests.Remove(request);

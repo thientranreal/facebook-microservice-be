@@ -88,10 +88,12 @@ public class PostRepository : IGenericRepository<Post>// nhớ implement IGeneri
     }
 
     //method GetPostSearch
-    public async Task<IEnumerable<Post>> SearchPostsByContent(string content)
+    public async Task<IEnumerable<Post>> SearchPostsByContent(string content,int resultsLimit,int resultsOffset)
     {
         return await _dbContext.Posts
             .Where(post => post.content.Contains(content))
+            .Skip(resultsOffset) // Bỏ qua số lượng bản ghi dựa trên offset
+            .Take(resultsLimit)  // Lấy số lượng bản ghi dựa trên limit
             .ToListAsync();
     }
 }

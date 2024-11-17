@@ -58,7 +58,7 @@ namespace PostWebApi.Controllers
            }
        
            return Ok(posts);
-       }
+        }
 
 
         //POST : api/post
@@ -177,30 +177,67 @@ namespace PostWebApi.Controllers
 
         
 
-        // GET: api/post/search?content=example
+        // GET: api/post/search?content=example&limit=10&offset=0
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<Post>>> SearchPostsByContent(string content)
+        public async Task<ActionResult<IEnumerable<Post>>> SearchPostsByContent(string content, int? limit, int? offset, int? currentUserId)
         {
             if (string.IsNullOrEmpty(content))
             {
                 return BadRequest("Content parameter is required.");
             }
-
+            
             // var posts = await _dbContext.Posts
             //     .Where(post => post.content.Contains(content))
             //     .ToListAsync();
-            var posts = await _postRepository.SearchPostsByContent(content);
+            // var posts = await _postRepository.SearchPostsByContent(content);
+            int resultsLimit = limit ?? 10;
+            int resultsOffset = offset ?? 0;
+
+            // var posts = await _dbContext.Posts
+            //     .Where(post => post.content.Contains(content))
+            //     .Skip(resultsOffset) // Bỏ qua số lượng bản ghi dựa trên offset
+            //     .Take(resultsLimit)  // Lấy số lượng bản ghi dựa trên limit
+            //     .ToListAsync();
+            var posts = await _postRepository.SearchPostsByContent(content,resultsLimit,resultsOffset);
+
 
             if (posts == null)
             {
                 return NotFound($"No posts found with content containing: {content}.");
             }
-
+            foreach (var post in posts)
+            {
+                post.likedByCurrentUser = post.Reactions?.Any(r => r.UserId == currentUserId) ?? false;
+            }
             return Ok(posts); 
         }
-        
-        [HttpGet("post-noti/{id}")]
-        public async Task<IActionResult> GetPostById(int id)
+
+
+
+        // thêm hàm này để upload avatar bên profile 
+        // POST: api/post/uploadImage
+        [HttpPost("uploadImage")]
+        public async Task<ActionResult<string>> UploadImageForProfile([FromForm] IFormFile? imageFile)
+        {
+            if (imageFile == null || imageFile.Length == 0)
+            {
+                return BadRequest("Image file is required.");
+            }
+
+            try
+            {
+                string imageUrl = await UploadImageAsync(imageFile);
+                
+                return Ok(new { imageUrl });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("post-noti/{id}/{currentUserId}")]
+        public async Task<IActionResult> GetPostById(int id, int currentUserId)
         {
             // var post = await _dbContext.Posts
             //     .Include(p => p.Comments)
@@ -212,8 +249,12 @@ namespace PostWebApi.Controllers
             {
                 return NotFound(new { message = "Post not found" });
             }
+            
+            post.likedByCurrentUser = post.Reactions?.Any(r => r.UserId == currentUserId) ?? false;
+            
 
             return Ok(post);
         }
     }
+
 }
