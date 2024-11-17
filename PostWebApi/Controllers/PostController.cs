@@ -6,6 +6,7 @@ using PostWebApi.Services;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using PostWebApi.Repositories;
 
 namespace PostWebApi.Controllers
 {
@@ -13,12 +14,12 @@ namespace PostWebApi.Controllers
     [ApiController]
     public class PostController : ControllerBase
     {
-        private readonly PostDbContext _dbContext;
+        private readonly PostRepository  _postRepository;
         private readonly GoogleDriveService _googleDriveService;
         
-        public PostController(PostDbContext postDbContext,GoogleDriveService googleDriveService)
+        public PostController(PostRepository postRepository,GoogleDriveService googleDriveService)
         {
-            _dbContext = postDbContext;
+            _postRepository = postRepository;
             _googleDriveService = googleDriveService;
         }
 
@@ -42,25 +43,8 @@ namespace PostWebApi.Controllers
            // Ensure lastPostId is set to 0 if null to avoid issues in query comparisons
            lastPostId ??= 0;
 
-           IQueryable<Post> query = _dbContext.Posts
-               .OrderByDescending(post => post.timeline); // Order by newest posts first
-           
-           if (lastPostId != 0)
-           {
-               query = query.Where(post => post.id < lastPostId);
-           }
-       
-           // Apply user filter if userId is provided
-           if (userId.HasValue)
-           {
-               query = query.Where(post => post.userId == userId.Value);
-           }
-       
-           // Fetch limited posts according to the specified limit
-           var posts = await query
-               .Take(limit)
-               .ToListAsync();
-       
+           var posts = await _postRepository.GetPosts(limit,lastPostId,userId);
+           // var posts = await postsAsync;
            // Return 204 No Content if no posts found
            if (!posts.Any())
            {
@@ -89,19 +73,20 @@ namespace PostWebApi.Controllers
             try
             {
                 string imageUrl = await UploadImageAsync(imageFile);
-
+                var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
                 // Create and save the post
                 var post = new Post
                 {
                     userId = userId,
                     content = contentPost,
                     image = imageUrl,
-                    timeline = DateTime.Now,
+                    timeline = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamTimeZone),
                 };
 
-                await _dbContext.Posts.AddAsync(post);
-                await _dbContext.SaveChangesAsync();
-
+                // await _dbContext.Posts.AddAsync(post);
+                // await _dbContext.SaveChangesAsync();
+                
+                await _postRepository.AddAsync(post);
                 return Ok(post);  // Return the created post
             }
             catch (Exception ex)
@@ -121,7 +106,8 @@ namespace PostWebApi.Controllers
                 return BadRequest(ModelState);  
             }
             // 1. Find the existing post by ID
-            var existingPost = await _dbContext.Posts.SingleOrDefaultAsync(p => p.id == id);
+            // var existingPost = await _dbContext.Posts.SingleOrDefaultAsync(p => p.id == id);
+            var existingPost = await _postRepository.Exited(id);
             if (existingPost == null)
             {
                 return NotFound();
@@ -147,7 +133,8 @@ namespace PostWebApi.Controllers
             }
             try
             {
-                await _dbContext.SaveChangesAsync();
+                // await _dbContext.SaveChangesAsync();
+                await _postRepository.SaveChangesAsync();
             }
             catch (DbUpdateException ex)
             {
@@ -165,7 +152,8 @@ namespace PostWebApi.Controllers
         {   
             
             //KIỂM TRA XEM POST CÓ TỒN TẠI KHÔNG?
-            var post = await _dbContext.Posts.SingleOrDefaultAsync(p => p.id == id);
+            // var post = await _dbContext.Posts.SingleOrDefaultAsync(p => p.id == id);
+            var post = await _postRepository.Exited(id);
             //NẾU POST KHÔNG TỒN TẠI THÌ TRẢ VỀ 404 
             if (post == null)
             {
@@ -181,8 +169,9 @@ namespace PostWebApi.Controllers
                 var isSuccess = _googleDriveService.DeleteImageFile(match.Groups[1].Value);
                
             }
-             _dbContext.Posts.Remove(post);
-             await _dbContext.SaveChangesAsync();
+             // _dbContext.Posts.Remove(post);
+             // await _dbContext.SaveChangesAsync();
+             await _postRepository.DeleteAsync(post);
              return NoContent();
         }
 
@@ -197,11 +186,12 @@ namespace PostWebApi.Controllers
                 return BadRequest("Content parameter is required.");
             }
 
-            var posts = await _dbContext.Posts
-                .Where(post => post.content.Contains(content))
-                .ToListAsync();
+            // var posts = await _dbContext.Posts
+            //     .Where(post => post.content.Contains(content))
+            //     .ToListAsync();
+            var posts = await _postRepository.SearchPostsByContent(content);
 
-            if (posts == null || posts.Count == 0)
+            if (posts == null)
             {
                 return NotFound($"No posts found with content containing: {content}.");
             }
@@ -212,10 +202,11 @@ namespace PostWebApi.Controllers
         [HttpGet("post-noti/{id}")]
         public async Task<IActionResult> GetPostById(int id)
         {
-            var post = await _dbContext.Posts
-                .Include(p => p.Comments)
-                .Include(p => p.Reactions)
-                .FirstOrDefaultAsync(p => p.id == id);
+            // var post = await _dbContext.Posts
+            //     .Include(p => p.Comments)
+            //     .Include(p => p.Reactions)
+            //     .FirstOrDefaultAsync(p => p.id == id);
+            var post = await _postRepository.GetByIdAsync(id);
 
             if (post == null)
             {
