@@ -10,6 +10,7 @@ builder.Services.AddControllers();
 
 // Add EmailService
 builder.Services.AddScoped<IEmailService, EmailService>();
+//Add UserRepository
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // Database Context Dependency Injection
