@@ -1,13 +1,15 @@
-﻿namespace RequestWebApi.Repositories;
+﻿using RequestWebApi.Models;
 
-public class RequestRepository // nhớ implement IGenericRepository<Request>
+namespace RequestWebApi.Repositories
 {
-    private readonly RequestDbContext _context;
-
-    public RequestRepository(RequestDbContext context)
+    public class RequestRepository : GenericRepository<Request>, IRequestRepository
     {
-        _context = context;
+        public RequestRepository(RequestDbContext context) : base(context)
+        {
+        }
     }
-    // implement các phương thức của IGenericRepository<Request>
-    // thêm dô mấy cái phương thức mà ko có sẵn trong IGenericRepository
+
+    public interface IRequestRepository : IGenericRepository<Request>
+    {
+    }
 }

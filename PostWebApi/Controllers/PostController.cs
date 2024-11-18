@@ -190,7 +190,7 @@ namespace PostWebApi.Controllers
 
         // GET: api/post/search?content=example&limit=10&offset=0
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<Post>>> SearchPostsByContent(string content, int? limit, int? offset)
+        public async Task<ActionResult<IEnumerable<Post>>> SearchPostsByContent(string content, int? limit, int? offset, int? currentUserId)
         {
             if (string.IsNullOrEmpty(content))
             {
@@ -210,7 +210,10 @@ namespace PostWebApi.Controllers
             {
                 return NotFound($"No posts found with content containing: {content}.");
             }
-
+            foreach (var post in posts)
+            {
+                post.likedByCurrentUser = post.Reactions?.Any(r => r.UserId == currentUserId) ?? false;
+            }
             return Ok(posts); 
         }
 
@@ -238,8 +241,8 @@ namespace PostWebApi.Controllers
             }
         }
 
-        [HttpGet("post-noti/{id}")]
-        public async Task<IActionResult> GetPostById(int id)
+        [HttpGet("post-noti/{id}/{currentUserId}")]
+        public async Task<IActionResult> GetPostById(int id, int currentUserId)
         {
             var post = await _dbContext.Posts
                 .Include(p => p.Comments)
@@ -250,6 +253,9 @@ namespace PostWebApi.Controllers
             {
                 return NotFound(new { message = "Post not found" });
             }
+            
+            post.likedByCurrentUser = post.Reactions?.Any(r => r.UserId == currentUserId) ?? false;
+            
 
             return Ok(post);
         }

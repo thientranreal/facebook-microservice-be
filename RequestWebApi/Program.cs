@@ -15,7 +15,7 @@ var dbPassword = Environment.GetEnvironmentVariable("DB_ROOT_PASSWORD");
 
 var connectionString = $"server={dbHost};port=3306;database={dbName};user=root;password={dbPassword}";
 builder.Services.AddDbContext<RequestDbContext>(o => o.UseMySQL(connectionString));
-// builder.Services.AddScoped<RequestRepository>(); // nhớ mở comment sau khi sử dụng IGenericRepository
+builder.Services.AddScoped<IRequestRepository, RequestRepository>();
 //=========================================
 
 var app = builder.Build();
