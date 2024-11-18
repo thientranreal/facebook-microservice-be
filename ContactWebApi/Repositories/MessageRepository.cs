@@ -12,7 +12,7 @@ public class MessageRepository : GenericRepository<Message>, IMessageRepository
         _context = context;
     }
 
-    public async Task<List<Message?>?> GetLatestMsg(int userId)
+    public async Task<IEnumerable<Message?>?> GetLatestMsg(int userId)
     {
         var latestMessages = await _context.Messages
             .Where(m => m.Sender == userId || m.Receiver == userId)
@@ -26,7 +26,7 @@ public class MessageRepository : GenericRepository<Message>, IMessageRepository
         return latestMessages;
     }
     
-    public async Task<List<Message>> GetConversationMessages(
+    public async Task<IEnumerable<Message>?> GetConversationMessages(
         int userId, 
         int contactId, 
         int pageSize,
@@ -34,7 +34,7 @@ public class MessageRepository : GenericRepository<Message>, IMessageRepository
         string? createdAt
         )
     {
-        List<Message> messages;
+        IEnumerable<Message> messages;
         if (msgId != null && createdAt != null)
         {
             string sqlQuery = @"

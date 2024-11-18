@@ -12,6 +12,7 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<IEmailService, EmailService>();
 //Add UserRepository
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+
 // Database Context Dependency Injection
 var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
 var dbName = Environment.GetEnvironmentVariable("DB_NAME");
@@ -29,17 +30,9 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
+builder.Services.AddHttpClient();
+
 // =========================================
-// Enable CORS to allow access from React (modify origin as needed)
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowReactApp",
-        policy => policy
-            .WithOrigins("http://localhost:3000") // Thay bằng địa chỉ của React app
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials());
-});
 
 // Add Session and Distributed Cache
 builder.Services.AddDistributedMemoryCache();

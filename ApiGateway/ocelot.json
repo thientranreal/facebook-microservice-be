@@ -68,24 +68,11 @@
       ],
       "DownstreamPathTemplate": "/api/notification/{everything}"
     },
-    {
-      "UpstreamPathTemplate": "/notificationHub/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "notificationwebapi",
-          "Port": 8080
-        }
-      ],
-      "DownstreamPathTemplate": "/notificationHub/{everything}",
-      "UseProxyWebSocket": true
-    },
 
 //    Api user
     {
       "UpstreamPathTemplate": "/api/user/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "PATCH", "DELETE" ],
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {

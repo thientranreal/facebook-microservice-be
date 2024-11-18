@@ -15,11 +15,21 @@ namespace UserWebApi.Controllers
         private readonly UserDbContext _dbContext;
         private readonly IEmailService _emailService;
         private static Dictionary<string, int> _loginAttempts = new(); // Đếm số lần đăng nhập cho mỗi email
-        private readonly PasswordHasher<User> _passwordHasher= new PasswordHasher<User>() ;
-        public UserController(IUserRepository userRepository, IEmailService emailService)
+
+        private readonly PasswordHasher<User> _passwordHasher= new PasswordHasher<User>();
+//      public UserController(IUserRepository userRepository, IEmailService emailService)
+
+        public UserController(
+            UserDbContext userDbContext, 
+            IEmailService emailService, 
+            IUserRepository userRepository
+            )
+
+
         {
             _userRepository = userRepository;
             _emailService = emailService;
+            _userRepository = userRepository;
         }
 
         // GET: api/user
@@ -38,26 +48,40 @@ namespace UserWebApi.Controllers
 
             if (user == null)
             {
-                return NotFound();
+                return NotFound("Cannot find user with id : " + id);
             }
 
-            return user;
+            return Ok(user);
         }
 
-        // GET: api/user/search?name=John
+        // GET: api/user/search?name=John&limit=10&offset=0
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<User>>> SearchUsersByName(string name)
+        public async Task<ActionResult<IEnumerable<User>>> SearchUsersByName(string name, int? limit, int? offset)
         {
             if (string.IsNullOrEmpty(name))
             {
-                return BadRequest("Name parameter is required.");
-            }
+//                 return BadRequest("Name parameter is required.");
+//             }
            
-            var users = await _userRepository.SearchUsersByNameAsync(name);
-            if (users == null || !users.Any())
-            {
-                return NotFound("Không tìm thấy user với tên: " + name);
+//             var users = await _userRepository.SearchUsersByNameAsync(name);
+//             if (users == null || !users.Any())
+                return BadRequest("Cannot find name parameter!");
             }
+
+            int resultsLimit = limit ?? 10;
+            int resultsOffset = offset ?? 0;
+
+            var users = await _dbContext.Users
+                .Where(u => u.Name.Contains(name))
+                .Skip(resultsOffset) // Bỏ qua số lượng bản ghi dựa trên offset
+                .Take(resultsLimit)  // Lấy số lượng bản ghi dựa trên limit
+                .ToListAsync();
+
+            if (users == null || users.Count == 0)
+            {
+                return NotFound("Cannot find user with name: " + name);
+            }
+
             return Ok(users);
         }
 
@@ -86,6 +110,111 @@ namespace UserWebApi.Controllers
             await _emailService.SendConfirmationEmailAsync(user.Email, user.Name);
 
             return Ok("Confirmation email has been sent.");
+        }
+
+
+        // PUT: api/user/5
+        [HttpPut("{id}")]
+        public async Task<ActionResult> UpdateUser(int id, [FromBody] User userUpdate)
+        {
+            var user = await _dbContext.Users.FindAsync(id);
+
+            if (user == null)
+            {
+                return NotFound("Could not find user with id: " + id);
+            }
+
+            // Kiểm tra các trường thông tin cá nhân bắt buộc
+            if (string.IsNullOrEmpty(userUpdate.Name) ||
+                userUpdate.Birth == default ||
+                string.IsNullOrEmpty(userUpdate.Email) ||
+                string.IsNullOrEmpty(userUpdate.Phone) ||
+                string.IsNullOrEmpty(userUpdate.Gender) ||
+                string.IsNullOrEmpty(userUpdate.Address))
+            {
+                return BadRequest("Personal Information fields, such as name, phone, email, gender, address, birth, are required.");
+            }
+
+            // Cập nhật dữ liệu nếu có giá trị mới
+            user.Name = userUpdate.Name;
+            user.Birth = userUpdate.Birth;
+            user.Email = userUpdate.Email;
+            user.Phone = userUpdate.Phone;
+            user.Gender = userUpdate.Gender;
+            user.Address = userUpdate.Address;
+
+            // Các trường còn lại có thể có hoặc không
+            if (userUpdate.Avt != null)
+            {
+                user.Avt = userUpdate.Avt;
+            }
+
+            if (userUpdate.Desc != null)
+            {
+                user.Desc = userUpdate.Desc;
+            }
+
+            if (userUpdate.IsOnline != user.IsOnline)
+            {
+                user.IsOnline = userUpdate.IsOnline;
+            }
+
+            if (userUpdate.LastActive != default)
+            {
+                user.LastActive = userUpdate.LastActive;
+            }
+
+            if (userUpdate.Social != null)
+            {
+                user.Social = userUpdate.Social;
+            }
+
+            if (userUpdate.Education != null)
+            {
+                user.Education = userUpdate.Education;
+            }
+
+            if (userUpdate.Relationship != null)
+            {
+                user.Relationship = userUpdate.Relationship;
+            }
+
+            if (userUpdate.TimeJoin != default)
+            {
+                user.TimeJoin = userUpdate.TimeJoin;
+            }
+
+            // Cập nhật password nếu không rỗng
+            if (!string.IsNullOrEmpty(userUpdate.Password))
+            {
+                user.Password = userUpdate.Password;
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(user);
+        }
+
+        // PUT: api/user/upload?userId=1
+        [HttpPut("upload")]
+        public async Task<ActionResult> UpdateAvatar([FromQuery] int userId, [FromBody] AvatarUpdateRequest request)
+        {
+            if (string.IsNullOrEmpty(request.ImageUrl))
+            {
+                return BadRequest("Image URL is required.");
+            }
+
+            var user = await _dbContext.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound("User not found.");
+            }
+
+            user.Avt = request.ImageUrl;
+
+            await _dbContext.SaveChangesAsync();
+
+            return Ok("Avatar updated successfully.");
         }
 // ------------------- CONFIRM EMAIL -------------------
         [HttpGet("confirm-email")]
@@ -296,90 +425,93 @@ public async Task<IActionResult> Logout()
         }
         
         // PUT: api/user/5
-        [HttpPut("{id}")]
-        public async Task<ActionResult> UpdateUser(int id, [FromBody] User userUpdate)
-        {
-            var user = await _userRepository.GetByIdAsync(id);
 
-            if (user == null)
-            {
-                return NotFound("Could not find user with id: " + id); 
-            }
+//         [HttpPut("{id}")]
+//         public async Task<ActionResult> UpdateUser(int id, [FromBody] User userUpdate)
+//         {
+//             var user = await _userRepository.GetUserByIdAsync(id);
 
-            if (!string.IsNullOrEmpty(userUpdate.Name))
-            {
-                user.Name = userUpdate.Name;
-            }
 
-            if (userUpdate.Birth != default)
-            {
-                user.Birth = userUpdate.Birth;
-            }
+//             if (user == null)
+//             {
+//                 return NotFound("Could not find user with id: " + id); 
+//             }
 
-            if (!string.IsNullOrEmpty(userUpdate.Avt))
-            {
-                user.Avt = userUpdate.Avt;
-            }
+//             if (!string.IsNullOrEmpty(userUpdate.Name))
+//             {
+//                 user.Name = userUpdate.Name;
+//             }
 
-            if (!string.IsNullOrEmpty(userUpdate.Phone))
-            {
-                user.Phone = userUpdate.Phone;
-            }
+//             if (userUpdate.Birth != default)
+//             {
+//                 user.Birth = userUpdate.Birth;
+//             }
 
-            if (!string.IsNullOrEmpty(userUpdate.Email))
-            {
-                user.Email = userUpdate.Email;
-            }
+//             if (!string.IsNullOrEmpty(userUpdate.Avt))
+//             {
+//                 user.Avt = userUpdate.Avt;
+//             }
 
-            if (!string.IsNullOrEmpty(userUpdate.Gender))
-            {
-                user.Gender = userUpdate.Gender;
-            }
+//             if (!string.IsNullOrEmpty(userUpdate.Phone))
+//             {
+//                 user.Phone = userUpdate.Phone;
+//             }
 
-            if (!string.IsNullOrEmpty(userUpdate.Desc))
-            {
-                user.Desc = userUpdate.Desc;
-            }
+//             if (!string.IsNullOrEmpty(userUpdate.Email))
+//             {
+//                 user.Email = userUpdate.Email;
+//             }
 
-            if (userUpdate.IsOnline != user.IsOnline) 
-            {
-                user.IsOnline = userUpdate.IsOnline;
-            }
+//             if (!string.IsNullOrEmpty(userUpdate.Gender))
+//             {
+//                 user.Gender = userUpdate.Gender;
+//             }
 
-            if (userUpdate.LastActive != default) 
-            {
-                user.LastActive = userUpdate.LastActive;
-            }
+//             if (!string.IsNullOrEmpty(userUpdate.Desc))
+//             {
+//                 user.Desc = userUpdate.Desc;
+//             }
 
-            if (!string.IsNullOrEmpty(userUpdate.Address))
-            {
-                user.Address = userUpdate.Address;
-            }
+//             if (userUpdate.IsOnline != user.IsOnline) 
+//             {
+//                 user.IsOnline = userUpdate.IsOnline;
+//             }
 
-            if (!string.IsNullOrEmpty(userUpdate.Social))
-            {
-                user.Social = userUpdate.Social;
-            }
+//             if (userUpdate.LastActive != default) 
+//             {
+//                 user.LastActive = userUpdate.LastActive;
+//             }
 
-            if (!string.IsNullOrEmpty(userUpdate.Education))
-            {
-                user.Education = userUpdate.Education;
-            }
+//             if (!string.IsNullOrEmpty(userUpdate.Address))
+//             {
+//                 user.Address = userUpdate.Address;
+//             }
 
-            if (!string.IsNullOrEmpty(userUpdate.Relationship))
-            {
-                user.Relationship = userUpdate.Relationship;
-            }
+//             if (!string.IsNullOrEmpty(userUpdate.Social))
+//             {
+//                 user.Social = userUpdate.Social;
+//             }
 
-            if (userUpdate.TimeJoin != default) 
-            {
-                user.TimeJoin = userUpdate.TimeJoin;
-            }
+//             if (!string.IsNullOrEmpty(userUpdate.Education))
+//             {
+//                 user.Education = userUpdate.Education;
+//             }
 
-            await _userRepository.SaveChangesAsync(); 
+//             if (!string.IsNullOrEmpty(userUpdate.Relationship))
+//             {
+//                 user.Relationship = userUpdate.Relationship;
+//             }
 
-            return Ok(user); 
+//             if (userUpdate.TimeJoin != default) 
+//             {
+//                 user.TimeJoin = userUpdate.TimeJoin;
+//             }
+
+//             await _userRepository.SaveChangesAsync(); 
+
+//             return Ok(user); 
         }
+
     }
          //------------------------------------- LOG OUT ----------------------------
  
