@@ -125,36 +125,6 @@ namespace UserWebApi.Controllers
 
             return Ok(friendship);
         }
-        
-        
-        // [HttpGet("nonfriends/{userId}")]
-        // public async Task<IActionResult> GetNonFriends(int userId)
-        // {
-        //     var httpClient = _httpClientFactory.CreateClient();
-        //     var url = $"http://requestwebapi:8080/api/request/{userId}"; // Gọi API `requestwebapi` với userId đúng
-        //
-        //     // Gửi yêu cầu GET tới API `requestwebapi`
-        //     var httpResponseMessage = await httpClient.GetAsync(url);
-        //
-        //     // Kiểm tra xem yêu cầu có thành công hay không
-        //     if (httpResponseMessage.IsSuccessStatusCode)
-        //     {
-        //         // Đọc nội dung phản hồi từ HTTP response
-        //         var content = await httpResponseMessage.Content.ReadAsStringAsync();
-        //
-        //         // Deserialize vào danh sách Request (thay vì dynamic)
-        //         var friendRequests = JsonConvert.DeserializeObject<List<Request>>(content);
-        //
-        //         // Trả về danh sách friendRequests dưới dạng HTTP response
-        //         return Ok(friendRequests);
-        //     }
-        //     else
-        //     {
-        //         // Nếu có lỗi, trả về mã lỗi và thông báo
-        //         return StatusCode((int)httpResponseMessage.StatusCode, "Failed to get non-friends data.");
-        //     }
-        // }
-
 
         
         [HttpGet("nonfriends/{userId}")]
@@ -280,7 +250,7 @@ namespace UserWebApi.Controllers
                 }
             }
 
-// Nếu có lỗi ở Bước 2, hủy Bước 1
+            // Nếu có lỗi ở Bước 2, hủy Bước 1
             if (!transactionSuccessful)
             {
                 // Hủy bỏ quan hệ bạn bè đã tạo ở Bước 1 nếu có lỗi ở Bước 2

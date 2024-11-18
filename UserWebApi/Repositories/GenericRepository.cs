@@ -4,13 +4,14 @@ namespace UserWebApi.Repositories;
 
 public class GenericRepository<T> : IGenericRepository<T> where T : class
 {
-    private readonly UserDbContext _context;
+    private readonly UserDbContext _user;
     private readonly DbSet<T> _dbSet;
 
-    public GenericRepository(UserDbContext context)
+    public GenericRepository(UserDbContext user)
     {
-        _context = context;
-        _dbSet = _context.Set<T>();
+        _user = user;
+        _dbSet = _user.Set<T>();
+
     }
 
     public async Task<IEnumerable<T>?> GetAllAsync()
@@ -26,13 +27,15 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
     public async Task AddAsync(T entity)
     {
         await _dbSet.AddAsync(entity);
-        await _context.SaveChangesAsync();
+        await _user.SaveChangesAsync();
+
     }
 
     public async Task UpdateAsync(T entity)
     {
         _dbSet.Update(entity);
-        await _context.SaveChangesAsync();
+        await _user.SaveChangesAsync();
+
     }
 
     public async Task DeleteAsync(int id)
@@ -41,7 +44,8 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
         if (entity != null)
         {
             _dbSet.Remove(entity);
-            await _context.SaveChangesAsync();
+            await _user.SaveChangesAsync();
+
         }
     }
 }
