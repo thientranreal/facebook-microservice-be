@@ -67,6 +67,18 @@ namespace RequestWebApi.Controllers
         [HttpPost]
         public async Task<ActionResult> Create(Request request)
         {
+            
+            // Kiểm tra nếu yêu cầu đã tồn tại (trong trường hợp sender và receiver đổi vị trí)
+            var existingRequest = await _dbContext.Requests
+                .FirstOrDefaultAsync(r => 
+                    (r.Sender == request.Sender && r.Receiver == request.Receiver) || 
+                    (r.Sender == request.Receiver && r.Receiver == request.Sender));
+
+            if (existingRequest != null)
+            {
+                // Trả về trạng thái tồn tại
+                return Conflict(new { status = "exists", message = "Request already exists" });
+            }
             // Thêm đối tượng Request vào cơ sở dữ liệu
             await _dbContext.Requests.AddAsync(request);
             await _dbContext.SaveChangesAsync();
