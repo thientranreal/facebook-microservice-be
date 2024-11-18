@@ -14,7 +14,7 @@ public class EmailService : IEmailService
         public async Task SendEmailAsync(string toEmail, string subject, string body)
         {
             var email = new MimeMessage();
-            email.From.Add(new MailboxAddress("Your Password nè!", "phakefacebook.404@gmail.com"));
+            email.From.Add(new MailboxAddress("Your Password!", "phakefacebook.404@gmail.com"));
             email.To.Add(MailboxAddress.Parse(toEmail));
             email.Subject = subject;
          
