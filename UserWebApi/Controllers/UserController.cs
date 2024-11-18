@@ -23,9 +23,8 @@ namespace UserWebApi.Controllers
             IEmailService emailService, 
             IUserRepository userRepository
             )
-
         {
-            _userRepository = userRepository;
+            _dbContext = userDbContext;
             _emailService = emailService;
             _userRepository = userRepository;
         }
@@ -244,104 +243,104 @@ namespace UserWebApi.Controllers
         //-------------------------------LOGIN-------------------------------------
         
        [HttpPost("login")]
-public async Task<ActionResult> Login([FromBody] LoginRequest loginRequest)
-{
-    // Kiểm tra nếu loginRequest là null
-    if (loginRequest == null)
-    {
-        return BadRequest("Invalid request data.");
-    }
-
-    // Kiểm tra nếu Email và Password bị null hoặc rỗng
-    if (string.IsNullOrEmpty(loginRequest.Email) || string.IsNullOrEmpty(loginRequest.Password))
-    {
-        return BadRequest("Email and password are required.");
-    }
-
-    // Khởi tạo số lần đăng nhập sai nếu chưa có
-    if (!_loginAttempts.ContainsKey(loginRequest.Email))
-    {
-        _loginAttempts[loginRequest.Email] = 0;
-    }
-
-    try
-    {
-        // Kiểm tra xem người dùng có tồn tại không
-        var user = await _userRepository.GetUserByEmailAsync(loginRequest.Email);
-        
-        // Kiểm tra nếu user bị null
-        if (user == null)
+        public async Task<ActionResult> Login([FromBody] LoginRequest loginRequest)
         {
-            _loginAttempts[loginRequest.Email]++;
-            return Unauthorized("Invalid email or password.");
-        }
-        // Kiểm tra xác thực email (TimeJoin)
-        if (user.TimeJoin == new DateTime(2010, 10, 10, 0, 0, 0, DateTimeKind.Utc))
-        {
-            return BadRequest("Email not verified.");
-        }
+            // Kiểm tra nếu loginRequest là null
+            if (loginRequest == null)
+            {
+                return BadRequest("Invalid request data.");
+            }
 
-        // Kiểm tra nếu Password của user bị null
-        if (string.IsNullOrEmpty(user.Password))
-        {
-            return Unauthorized("Invalid email or password.");
-        }
+            // Kiểm tra nếu Email và Password bị null hoặc rỗng
+            if (string.IsNullOrEmpty(loginRequest.Email) || string.IsNullOrEmpty(loginRequest.Password))
+            {
+                return BadRequest("Email and password are required.");
+            }
 
-        // Kiểm tra mật khẩu đã mã hóa
-        var passwordVerificationResult = _passwordHasher.VerifyHashedPassword(user, user.Password, loginRequest.Password);
-        if (passwordVerificationResult == PasswordVerificationResult.Failed)
-        {
-            _loginAttempts[loginRequest.Email]++;
-            return Unauthorized("Invalid email or password.");
-        }
+            // Khởi tạo số lần đăng nhập sai nếu chưa có
+            if (!_loginAttempts.ContainsKey(loginRequest.Email))
+            {
+                _loginAttempts[loginRequest.Email] = 0;
+            }
 
-        // Reset số lần đăng nhập khi thành công
-        _loginAttempts[loginRequest.Email] = 0;
-        
-        user.IsOnline = 1;
-        await _userRepository.SaveChangesAsync();
-        // Lưu userId vào session
-        HttpContext.Session.SetString("UserId", user.Id.ToString());
-        
-        return Ok(new { message = "Login successful", userId = user.Id });
-    }
-    catch (Exception ex)
-    {
-        // Ghi log lỗi chi tiết để giúp debug
-        Console.WriteLine($"Error: {ex.Message}");
-        return StatusCode(500, "Internal server error.");
-    }
-}
+            try
+            {
+                // Kiểm tra xem người dùng có tồn tại không
+                var user = await _userRepository.GetUserByEmailAsync(loginRequest.Email);
+                
+                // Kiểm tra nếu user bị null
+                if (user == null)
+                {
+                    _loginAttempts[loginRequest.Email]++;
+                    return Unauthorized("Invalid email or password.");
+                }
+                // Kiểm tra xác thực email (TimeJoin)
+                if (user.TimeJoin == new DateTime(2010, 10, 10, 0, 0, 0, DateTimeKind.Utc))
+                {
+                    return BadRequest("Email not verified.");
+                }
+
+                // Kiểm tra nếu Password của user bị null
+                if (string.IsNullOrEmpty(user.Password))
+                {
+                    return Unauthorized("Invalid email or password.");
+                }
+
+                // Kiểm tra mật khẩu đã mã hóa
+                var passwordVerificationResult = _passwordHasher.VerifyHashedPassword(user, user.Password, loginRequest.Password);
+                if (passwordVerificationResult == PasswordVerificationResult.Failed)
+                {
+                    _loginAttempts[loginRequest.Email]++;
+                    return Unauthorized("Invalid email or password.");
+                }
+
+                // Reset số lần đăng nhập khi thành công
+                _loginAttempts[loginRequest.Email] = 0;
+                
+                user.IsOnline = 1;
+                await _userRepository.SaveChangesAsync();
+                // Lưu userId vào session
+                HttpContext.Session.SetString("UserId", user.Id.ToString());
+                
+                return Ok(new { message = "Login successful", userId = user.Id });
+            }
+            catch (Exception ex)
+            {
+                // Ghi log lỗi chi tiết để giúp debug
+                Console.WriteLine($"Error: {ex.Message}");
+                return StatusCode(500, "Internal server error.");
+            }
+        }
 
         //------------------------------- LOG OUT -----------------------
-[HttpPost("logout")]
-public async Task<IActionResult> Logout()
-{
-    // Lấy userId từ session
-    var userId = HttpContext.Session.GetString("UserId");
-    if (string.IsNullOrEmpty(userId))
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
     {
-        return Unauthorized("User is not logged in.");
+        // Lấy userId từ session
+        var userId = HttpContext.Session.GetString("UserId");
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized("User is not logged in.");
+        }
+
+        // Tìm user trong cơ sở dữ liệu
+        var user = await _userRepository.GetUserByIdAsync(int.Parse(userId));
+        if (user == null)
+        {
+            return NotFound("User not found.");
+        }
+
+        // Cập nhật trạng thái người dùng
+        user.IsOnline = 0;
+        user.LastActive = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).DateTime;
+
+        await _userRepository.SaveChangesAsync();
+
+        // Xóa session
+        HttpContext.Session.Clear();
+
+        return Ok("Logged out successfully.");
     }
-
-    // Tìm user trong cơ sở dữ liệu
-    var user = await _userRepository.GetUserByIdAsync(int.Parse(userId));
-    if (user == null)
-    {
-        return NotFound("User not found.");
-    }
-
-    // Cập nhật trạng thái người dùng
-    user.IsOnline = 0;
-    user.LastActive = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).DateTime;
-
-    await _userRepository.SaveChangesAsync();
-
-    // Xóa session
-    HttpContext.Session.Clear();
-
-    return Ok("Logged out successfully.");
-}
 
 
 
@@ -509,6 +508,4 @@ public async Task<IActionResult> Logout()
         }
 
     }
-         //------------------------------------- LOG OUT ----------------------------
- 
-}
+
