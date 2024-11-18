@@ -22,8 +22,12 @@ public class MessageRepository : GenericRepository<Message>, IMessageRepository
             })
             .Select(g => g.OrderByDescending(m => m.CreatedAt).FirstOrDefault())
             .ToListAsync();
+        
+        var sortedMessages = latestMessages
+            .OrderByDescending(m => m.CreatedAt)
+            .ToList();
 
-        return latestMessages;
+        return sortedMessages;
     }
     
     public async Task<IEnumerable<Message>?> GetConversationMessages(
