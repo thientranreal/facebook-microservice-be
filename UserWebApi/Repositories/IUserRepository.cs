@@ -1,4 +1,4 @@
-﻿using UserWebApi.Models;
+using UserWebApi.Models;
 
 namespace UserWebApi.Repositories
 {
@@ -14,4 +14,5 @@ namespace UserWebApi.Repositories
         Task<bool> UserExistsAsync(string email);
         Task SaveChangesAsync();
     }
+
 }

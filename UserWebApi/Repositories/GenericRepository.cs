@@ -11,6 +11,7 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
     {
         _user = user;
         _dbSet = _user.Set<T>();
+
     }
 
     public async Task<IEnumerable<T>?> GetAllAsync()
@@ -27,12 +28,14 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
     {
         await _dbSet.AddAsync(entity);
         await _user.SaveChangesAsync();
+
     }
 
     public async Task UpdateAsync(T entity)
     {
         _dbSet.Update(entity);
         await _user.SaveChangesAsync();
+
     }
 
     public async Task DeleteAsync(int id)
@@ -42,6 +45,7 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
         {
             _dbSet.Remove(entity);
             await _user.SaveChangesAsync();
+
         }
     }
 }

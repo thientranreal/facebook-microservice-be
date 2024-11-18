@@ -1,7 +1,7 @@
-using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using ContactWebApi.Models;
 using ContactWebApi.Repositories;
+using ContactWebApi.Utils;
 
 namespace ContactWebApi.Controllers
 {
@@ -27,7 +27,15 @@ namespace ContactWebApi.Controllers
                 return NotFound();
             }
 
-            return Ok(messages);
+            List<Message> messagesList = new List<Message>();
+
+            foreach (var message in messages)
+            {
+                message.Content = EncryptData.Decrypt(message.Content);
+                messagesList.Add(message);
+            }
+            
+            return Ok(messagesList);
         }
 
         // GET: api/Message/5
@@ -41,6 +49,8 @@ namespace ContactWebApi.Controllers
                 return NotFound();
             }
 
+            message.Content = EncryptData.Decrypt(message.Content);
+            
             return message;
         }
 
@@ -51,12 +61,20 @@ namespace ContactWebApi.Controllers
         {
             var latestMessages = await _messageRepository.GetLatestMsg(userId);
 
-            if (!latestMessages.Any())
+            if (latestMessages == null)
             {
                 return NotFound("No messages found for the given user.");
             }
+            
+            List<Message> messagesList = new List<Message>();
 
-            return Ok(latestMessages);
+            foreach (var message in latestMessages)
+            {
+                message.Content = EncryptData.Decrypt(message.Content);
+                messagesList.Add(message);
+            }
+            
+            return Ok(messagesList);
         }
         
         // GET: api/Message/UserMessages/{userId}/{contactId}
@@ -74,9 +92,7 @@ namespace ContactWebApi.Controllers
             {
                 try
                 {
-                    var decodedBytes = Convert.FromBase64String(cursor);
-                    string decodedCursor = Encoding.UTF8.GetString(decodedBytes);
-                    string[] splitCursor = decodedCursor.Split('&');
+                    string[] splitCursor = EncryptData.Decrypt(cursor).Split('&');
                     createdAt = splitCursor[0];
                     id = splitCursor[1];
                 }
@@ -85,24 +101,32 @@ namespace ContactWebApi.Controllers
                     return BadRequest("Invalid cursor format.");
                 }
             }
-
-            List<Message> messages = await _messageRepository
+            
+            var messages = await _messageRepository
                 .GetConversationMessages(userId, contactId, pageSize, id, createdAt);
-
-            if (!messages.Any())
+            
+            if (messages == null)
             {
                 return NotFound("No messages found for the given user.");
             }
             
+            List<Message> result = new List<Message>();
+
+            foreach (var message in messages)
+            {
+                message.Content = EncryptData.Decrypt(message.Content);
+                result.Add(message);
+            }
+            
             // Encode the cursor for the last message in the current result
-            var lastMessage = messages.Last();
-            var newCursor = Convert.ToBase64String(
-                Encoding.UTF8.GetBytes(
-                    lastMessage.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss") + "&" + lastMessage.Id));
+            var lastMessage = result.Last();
+            var newCursor = EncryptData.Encrypt(
+                lastMessage.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss") +
+                "&" + lastMessage.Id);
             
             return Ok(new
             {
-                messages,
+                messages = result,
                 cursor = newCursor
             });
         }
@@ -112,6 +136,8 @@ namespace ContactWebApi.Controllers
         [HttpPost]
         public async Task<ActionResult<Message>> PostMessage(Message message)
         {
+            message.Content = EncryptData.Encrypt(message.Content);
+            
             await _messageRepository.AddAsync(message);
 
             return CreatedAtAction("GetMessage", new { id = message.Id }, message);

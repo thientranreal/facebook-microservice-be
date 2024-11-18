@@ -1,3 +1,4 @@
+using ChatService.DTO;
 using Microsoft.AspNetCore.SignalR;
 
 namespace ChatService.Hubs;
@@ -81,6 +82,25 @@ public class ChatHub : Hub
             await Clients
                 .Client(connectionId)
                 .SendAsync("ReceiveEndCall");
+        }
+    }
+    
+    public async Task SendNotification(int receiverId, Notification notification)
+    {
+        if (_userConnections.TryGetValue(receiverId.ToString(), out var connectionId))
+        {
+            await Clients
+                .Client(connectionId)
+                .SendAsync("ReceiveNotification", notification);
+        }
+    }
+    public async Task DeleteNotification(int receiverId, Notification notification)
+    {
+        if (_userConnections.TryGetValue(receiverId.ToString(), out var connectionId))
+        {
+            await Clients
+                .Client(connectionId)
+                .SendAsync("DeleteNotification", notification);
         }
     }
 }
