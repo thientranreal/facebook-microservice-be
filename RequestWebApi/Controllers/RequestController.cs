@@ -10,9 +10,11 @@ namespace RequestWebApi.Controllers
     public class RequestController : ControllerBase
     {
         private readonly IRequestRepository _requestRepository;
+        private readonly RequestDbContext _context;
 
-        public RequestController(IRequestRepository requestRepository)
+        public RequestController(RequestDbContext context, IRequestRepository requestRepository)
         {
+            _context = context;
             _requestRepository = requestRepository;
         }
 
@@ -55,6 +57,17 @@ namespace RequestWebApi.Controllers
         [HttpPost]
         public async Task<ActionResult> Create(Request request)
         {
+
+            var existingRequest = await _context.Requests
+                .FirstOrDefaultAsync(r => 
+                    (r.Sender == request.Sender && r.Receiver == request.Receiver) || 
+                    (r.Sender == request.Receiver && r.Receiver == request.Sender));
+
+            if (existingRequest != null)
+            {
+                // Trả về trạng thái tồn tại
+                return Conflict(new { status = "exists", message = "Request already exists" });
+            }
             await _requestRepository.AddAsync(request);
             return Ok(new { id = request.Id });
         }
