@@ -3,11 +3,11 @@ using UserWebApi.Models;
 
 namespace UserWebApi.Repositories
 {
-    public class UserRepository : IUserRepository
+    public class UserRepository :GenericRepository<User>, IUserRepository
     {
         private readonly UserDbContext _dbContext;
 
-        public UserRepository(UserDbContext dbContext)
+        public UserRepository(UserDbContext dbContext):base(dbContext)
         {
             _dbContext = dbContext;
         }
@@ -19,11 +19,7 @@ namespace UserWebApi.Repositories
                 .Include(u => u.Friends2)
                 .ToListAsync();
         }
-
-        public async Task<User?> GetUserByIdAsync(int id)
-        {
-            return await _dbContext.Users.FindAsync(id);
-        }
+        
 
         public async Task<User?> GetUserByEmailAsync(string email)
         {
@@ -37,7 +33,7 @@ namespace UserWebApi.Repositories
                 .ToListAsync();
         }
 
-        public async Task AddUserAsync(User user)
+        /*public async Task AddUserAsync(User user)
         {
             await _dbContext.Users.AddAsync(user);
         }
@@ -50,7 +46,7 @@ namespace UserWebApi.Repositories
         public async Task DeleteUserAsync(User user)
         {
             _dbContext.Users.Remove(user);
-        }
+        }*/
 
         public async Task<bool> UserExistsAsync(string email)
         {

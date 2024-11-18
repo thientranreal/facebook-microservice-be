@@ -15,7 +15,7 @@ namespace UserWebApi.Controllers
         private readonly UserDbContext _dbContext;
         private readonly IEmailService _emailService;
         private static Dictionary<string, int> _loginAttempts = new(); // Đếm số lần đăng nhập cho mỗi email
-        private readonly PasswordHasher<User> _passwordHasher= new PasswordHasher<User>();
+        private readonly PasswordHasher<User> _passwordHasher= new PasswordHasher<User>() ;
         public UserController(IUserRepository userRepository, IEmailService emailService)
         {
             _userRepository = userRepository;
@@ -34,7 +34,7 @@ namespace UserWebApi.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<User>> GetUser(int id)
         {
-            var user = await _userRepository.GetUserByIdAsync(id);
+            var user = await _userRepository.GetByIdAsync(id);
 
             if (user == null)
             {
@@ -79,7 +79,7 @@ namespace UserWebApi.Controllers
 
             
             user.Password = _passwordHasher.HashPassword(user, user.Password);
-            await _userRepository.AddUserAsync(user);
+            await _userRepository.AddAsync(user);
             await _userRepository.SaveChangesAsync();
 
             // Gửi email xác nhận
@@ -105,7 +105,7 @@ namespace UserWebApi.Controllers
             {
                 // Cập nhật trường `TimeJoin` với thời gian hiện tại
                 user.TimeJoin = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).DateTime; // Gán thời gian hiện tại trực tiếp
-                await _userRepository.UpdateUserAsync(user);
+                await _userRepository.UpdateAsync(user);
                 await _userRepository.SaveChangesAsync();
 
                 return Ok("Email confirmed successfully.");
@@ -198,7 +198,7 @@ public async Task<IActionResult> Logout()
     }
 
     // Tìm user trong cơ sở dữ liệu
-    var user = await _userRepository.GetUserByIdAsync(int.Parse(userId));
+    var user = await _userRepository.GetByIdAsync(int.Parse(userId));
     if (user == null)
     {
         return NotFound("User not found.");
@@ -289,7 +289,7 @@ public async Task<IActionResult> Logout()
             }
 
             // Xóa người dùng
-            await _userRepository.DeleteUserAsync(user);
+            await _userRepository.DeleteAsync(user.Id);
             await _userRepository.SaveChangesAsync();
 
             return Ok("User deleted successfully.");
@@ -299,7 +299,7 @@ public async Task<IActionResult> Logout()
         [HttpPut("{id}")]
         public async Task<ActionResult> UpdateUser(int id, [FromBody] User userUpdate)
         {
-            var user = await _userRepository.GetUserByIdAsync(id);
+            var user = await _userRepository.GetByIdAsync(id);
 
             if (user == null)
             {
