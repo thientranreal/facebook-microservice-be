@@ -12,19 +12,16 @@ namespace UserWebApi.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserRepository _userRepository;
-        private readonly UserDbContext _dbContext;
         private readonly IEmailService _emailService;
         private static Dictionary<string, int> _loginAttempts = new(); // Đếm số lần đăng nhập cho mỗi email
+
         private readonly PasswordHasher<User> _passwordHasher= new PasswordHasher<User>();
-//      public UserController(IUserRepository userRepository, IEmailService emailService)
 
         public UserController(
-            UserDbContext userDbContext, 
             IEmailService emailService, 
             IUserRepository userRepository
             )
         {
-            _dbContext = userDbContext;
             _emailService = emailService;
             _userRepository = userRepository;
         }
@@ -41,7 +38,7 @@ namespace UserWebApi.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<User>> GetUser(int id)
         {
-            var user = await _userRepository.GetUserByIdAsync(id);
+            var user = await _userRepository.GetByIdAsync(id);
 
             if (user == null)
             {
@@ -68,11 +65,8 @@ namespace UserWebApi.Controllers
             int resultsLimit = limit ?? 10;
             int resultsOffset = offset ?? 0;
 
-            var users = await _dbContext.Users
-                .Where(u => u.Name.Contains(name))
-                .Skip(resultsOffset) // Bỏ qua số lượng bản ghi dựa trên offset
-                .Take(resultsLimit)  // Lấy số lượng bản ghi dựa trên limit
-                .ToListAsync();
+            var users = await _userRepository
+                .SearchUsersByNamePaginationAsync(name, resultsLimit, resultsOffset);
 
             if (users == null || users.Count == 0)
             {
@@ -100,7 +94,7 @@ namespace UserWebApi.Controllers
 
             
             user.Password = _passwordHasher.HashPassword(user, user.Password);
-            await _userRepository.AddUserAsync(user);
+            await _userRepository.AddAsync(user);
             await _userRepository.SaveChangesAsync();
 
             // Gửi email xác nhận
@@ -114,7 +108,7 @@ namespace UserWebApi.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult> UpdateUser(int id, [FromBody] User userUpdate)
         {
-            var user = await _dbContext.Users.FindAsync(id);
+            var user = await _userRepository.GetByIdAsync(id);
 
             if (user == null)
             {
@@ -187,7 +181,7 @@ namespace UserWebApi.Controllers
                 user.Password = userUpdate.Password;
             }
 
-            await _dbContext.SaveChangesAsync();
+            await _userRepository.SaveChangesAsync();
 
             return Ok(user);
         }
@@ -201,7 +195,7 @@ namespace UserWebApi.Controllers
                 return BadRequest("Image URL is required.");
             }
 
-            var user = await _dbContext.Users.FindAsync(userId);
+            var user = await _userRepository.GetByIdAsync(userId);
             if (user == null)
             {
                 return NotFound("User not found.");
@@ -209,7 +203,7 @@ namespace UserWebApi.Controllers
 
             user.Avt = request.ImageUrl;
 
-            await _dbContext.SaveChangesAsync();
+            await _userRepository.SaveChangesAsync();
 
             return Ok("Avatar updated successfully.");
         }
@@ -231,8 +225,7 @@ namespace UserWebApi.Controllers
             {
                 // Cập nhật trường `TimeJoin` với thời gian hiện tại
                 user.TimeJoin = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).DateTime; // Gán thời gian hiện tại trực tiếp
-                await _userRepository.UpdateUserAsync(user);
-                await _userRepository.SaveChangesAsync();
+                await _userRepository.UpdateAsync(user);
 
                 return Ok("Email confirmed successfully.");
             }
@@ -242,7 +235,7 @@ namespace UserWebApi.Controllers
 
         //-------------------------------LOGIN-------------------------------------
         
-       [HttpPost("login")]
+        [HttpPost("login")]
         public async Task<ActionResult> Login([FromBody] LoginRequest loginRequest)
         {
             // Kiểm tra nếu loginRequest là null
@@ -313,37 +306,35 @@ namespace UserWebApi.Controllers
         }
 
         //------------------------------- LOG OUT -----------------------
-    [HttpPost("logout")]
-    public async Task<IActionResult> Logout()
-    {
-        // Lấy userId từ session
-        var userId = HttpContext.Session.GetString("UserId");
-        if (string.IsNullOrEmpty(userId))
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
         {
-            return Unauthorized("User is not logged in.");
+            // Lấy userId từ session
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User is not logged in.");
+            }
+
+            // Tìm user trong cơ sở dữ liệu
+            var user = await _userRepository.GetByIdAsync(int.Parse(userId));
+            if (user == null)
+            {
+                return NotFound("User not found.");
+            }
+
+            // Cập nhật trạng thái người dùng
+            user.IsOnline = 0;
+            user.LastActive = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).DateTime;
+
+            await _userRepository.SaveChangesAsync();
+
+            // Xóa session
+            HttpContext.Session.Clear();
+
+            return Ok("Logged out successfully.");
         }
-
-        // Tìm user trong cơ sở dữ liệu
-        var user = await _userRepository.GetUserByIdAsync(int.Parse(userId));
-        if (user == null)
-        {
-            return NotFound("User not found.");
-        }
-
-        // Cập nhật trạng thái người dùng
-        user.IsOnline = 0;
-        user.LastActive = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).DateTime;
-
-        await _userRepository.SaveChangesAsync();
-
-        // Xóa session
-        HttpContext.Session.Clear();
-
-        return Ok("Logged out successfully.");
-    }
-
-
-
+        
         [HttpGet("sessionInfo")]
         public IActionResult GetSessionInfo()
         {
@@ -415,97 +406,9 @@ namespace UserWebApi.Controllers
             }
 
             // Xóa người dùng
-            await _userRepository.DeleteUserAsync(user);
-            await _userRepository.SaveChangesAsync();
+            await _userRepository.DeleteAsync(user.Id);
 
             return Ok("User deleted successfully.");
         }
-        
-        // PUT: api/user/5
-//         [HttpPut("{id}")]
-//         public async Task<ActionResult> UpdateUser(int id, [FromBody] User userUpdate)
-//         {
-//             var user = await _userRepository.GetUserByIdAsync(id);
-
-//             if (user == null)
-//             {
-//                 return NotFound("Could not find user with id: " + id); 
-//             }
-
-//             if (!string.IsNullOrEmpty(userUpdate.Name))
-//             {
-//                 user.Name = userUpdate.Name;
-//             }
-
-//             if (userUpdate.Birth != default)
-//             {
-//                 user.Birth = userUpdate.Birth;
-//             }
-
-//             if (!string.IsNullOrEmpty(userUpdate.Avt))
-//             {
-//                 user.Avt = userUpdate.Avt;
-//             }
-
-//             if (!string.IsNullOrEmpty(userUpdate.Phone))
-//             {
-//                 user.Phone = userUpdate.Phone;
-//             }
-
-//             if (!string.IsNullOrEmpty(userUpdate.Email))
-//             {
-//                 user.Email = userUpdate.Email;
-//             }
-
-//             if (!string.IsNullOrEmpty(userUpdate.Gender))
-//             {
-//                 user.Gender = userUpdate.Gender;
-//             }
-
-//             if (!string.IsNullOrEmpty(userUpdate.Desc))
-//             {
-//                 user.Desc = userUpdate.Desc;
-//             }
-
-//             if (userUpdate.IsOnline != user.IsOnline) 
-//             {
-//                 user.IsOnline = userUpdate.IsOnline;
-//             }
-
-//             if (userUpdate.LastActive != default) 
-//             {
-//                 user.LastActive = userUpdate.LastActive;
-//             }
-
-//             if (!string.IsNullOrEmpty(userUpdate.Address))
-//             {
-//                 user.Address = userUpdate.Address;
-//             }
-
-//             if (!string.IsNullOrEmpty(userUpdate.Social))
-//             {
-//                 user.Social = userUpdate.Social;
-//             }
-
-//             if (!string.IsNullOrEmpty(userUpdate.Education))
-//             {
-//                 user.Education = userUpdate.Education;
-//             }
-
-//             if (!string.IsNullOrEmpty(userUpdate.Relationship))
-//             {
-//                 user.Relationship = userUpdate.Relationship;
-//             }
-
-//             if (userUpdate.TimeJoin != default) 
-//             {
-//                 user.TimeJoin = userUpdate.TimeJoin;
-//             }
-
-//             await _userRepository.SaveChangesAsync(); 
-
-//             return Ok(user); 
-        }
-
     }
-
+}

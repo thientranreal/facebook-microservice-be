@@ -11,20 +11,19 @@ builder.Services.AddOcelot(builder.Configuration);
 // Add config CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowSpecificOrigin",
+    options.AddPolicy("AllowAll",
         builder =>
         {
-            builder.WithOrigins("http://localhost:3000") // Nguồn gốc frontend
+            builder.AllowAnyOrigin()
                 .AllowAnyMethod()
-                .AllowAnyHeader()
-                .AllowCredentials(); // Thêm nếu bạn sử dụng cookie hoặc thông tin xác thực
+                .AllowAnyHeader();
         });
 });
 
 var app = builder.Build();
 
 // Use middleware CORS
-app.UseCors("AllowSpecificOrigin");
+app.UseCors("AllowAll");
 
 await app.UseOcelot();
 app.Run();
