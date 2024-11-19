@@ -32,25 +32,9 @@ builder.Services.AddSession(options =>
 });
 builder.Services.AddHttpClient();
 
-// =========================================
-
-// Add Session and Distributed Cache
-builder.Services.AddDistributedMemoryCache();
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-});
-
 var app = builder.Build();
 
-// Use CORS and Session Middleware
-app.UseCors("AllowReactApp");
-
 app.UseSession();
-
-app.UseAuthorization();
 
 app.MapControllers();
 

@@ -7,22 +7,26 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
+var allowHost = Environment.GetEnvironmentVariable("ALLOW_HOST");
+
 // Add config CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll",
+    options.AddPolicy("AllowSpecificOrigin",
         builder =>
         {
-            builder.AllowAnyOrigin()
+            builder.WithOrigins("http://localhost:3000",
+                    allowHost)
                 .AllowAnyMethod()
-                .AllowAnyHeader();
+                .AllowAnyHeader()
+                .AllowCredentials();
         });
 });
 
 var app = builder.Build();
 
 // Use the CORS policy.
-app.UseCors("AllowAll");
+app.UseCors("AllowSpecificOrigin");
 
 app.MapHub<ChatHub>("/chathub");
 

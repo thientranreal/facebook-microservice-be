@@ -7,23 +7,26 @@ builder.Configuration.SetBasePath(builder.Environment.ContentRootPath)
     .AddEnvironmentVariables();
 builder.Services.AddOcelot(builder.Configuration);
 
+var allowHost = Environment.GetEnvironmentVariable("ALLOW_HOST");
 
 // Add config CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll",
+    options.AddPolicy("AllowSpecificOrigin",
         builder =>
         {
-            builder.AllowAnyOrigin()
+            builder.WithOrigins("http://localhost:3000",
+                    allowHost)
                 .AllowAnyMethod()
-                .AllowAnyHeader();
+                .AllowAnyHeader()
+                .AllowCredentials();
         });
 });
 
 var app = builder.Build();
 
 // Use middleware CORS
-app.UseCors("AllowAll");
+app.UseCors("AllowSpecificOrigin");
 
 await app.UseOcelot();
 app.Run();
