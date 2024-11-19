@@ -243,7 +243,7 @@ namespace UserWebApi.Controllers
 
         //-------------------------------LOGIN-------------------------------------
         
-       [HttpPost("login")]
+        [HttpPost("login")]
         public async Task<ActionResult> Login([FromBody] LoginRequest loginRequest)
         {
             // Kiểm tra nếu loginRequest là null
@@ -314,56 +314,35 @@ namespace UserWebApi.Controllers
         }
 
         //------------------------------- LOG OUT -----------------------
-    [HttpPost("logout")]
-    public async Task<IActionResult> Logout()
-    {
-        // Lấy userId từ session
-        var userId = HttpContext.Session.GetString("UserId");
-        if (string.IsNullOrEmpty(userId))
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
         {
-            return Unauthorized("User is not logged in.");
+            // Lấy userId từ session
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User is not logged in.");
+            }
+
+            // Tìm user trong cơ sở dữ liệu
+            var user = await _userRepository.GetByIdAsync(int.Parse(userId));
+            if (user == null)
+            {
+                return NotFound("User not found.");
+            }
+
+            // Cập nhật trạng thái người dùng
+            user.IsOnline = 0;
+            user.LastActive = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).DateTime;
+
+            await _userRepository.SaveChangesAsync();
+
+            // Xóa session
+            HttpContext.Session.Clear();
+
+            return Ok("Logged out successfully.");
         }
-
-        // Tìm user trong cơ sở dữ liệu
-        var user = await _userRepository.GetUserByIdAsync(int.Parse(userId));
-        if (user == null)
-        {
-            return NotFound("User not found.");
-        }
-
-        // Cập nhật trạng thái người dùng
-        user.IsOnline = 0;
-        user.LastActive = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).DateTime;
-
-        await _userRepository.SaveChangesAsync();
-
-        // Xóa session
-        HttpContext.Session.Clear();
-
-        return Ok("Logged out successfully.");
-    }
-
-    // Tìm user trong cơ sở dữ liệu
-    var user = await _userRepository.GetByIdAsync(int.Parse(userId));
-    if (user == null)
-    {
-        return NotFound("User not found.");
-    }
-
-    // Cập nhật trạng thái người dùng
-    user.IsOnline = 0;
-    user.LastActive = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).DateTime;
-
-    await _userRepository.SaveChangesAsync();
-
-    // Xóa session
-    HttpContext.Session.Clear();
-
-    return Ok("Logged out successfully.");
-}
-
-
-
+        
         [HttpGet("sessionInfo")]
         public IActionResult GetSessionInfo()
         {
@@ -527,7 +506,6 @@ namespace UserWebApi.Controllers
 //             await _userRepository.SaveChangesAsync(); 
 
 //             return Ok(user); 
-        }
-
     }
-
+         //------------------------------------- LOG OUT ----------------------------
+}
