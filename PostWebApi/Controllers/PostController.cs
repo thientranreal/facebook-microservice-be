@@ -91,12 +91,13 @@ namespace PostWebApi.Controllers
                 string imageUrl = await UploadImageAsync(imageFile);
 
                 // Create and save the post
+                var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
                 var post = new Post
                 {
                     userId = userId,
                     content = contentPost,
                     image = imageUrl,
-                    timeline = DateTime.Now,
+                    timeline = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamTimeZone),
                 };
 
                 await _dbContext.Posts.AddAsync(post);
