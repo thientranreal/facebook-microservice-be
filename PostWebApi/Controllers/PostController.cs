@@ -154,7 +154,6 @@ using PostWebApi.Repositories;
             try
             {
                 string imageUrl = await UploadImageAsync(imageFile);
-                var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
                 // Create and save the post
                 var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
                 var post = new Post

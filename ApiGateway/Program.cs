@@ -16,7 +16,8 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "http://localhost:3000", 
-                "http://192.168.176.1:3000")  // Đảm bảo thêm tất cả các URL có thể sử dụng
+                "http://192.168.176.1:3000",
+                "http://192.168.26.61.3000")  // Đảm bảo thêm tất cả các URL có thể sử dụng
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();  // Cho phép cookies được gửi
@@ -27,7 +28,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Use middleware CORS
-app.UseCors("AllowSpecificOrigin");
+app.UseCors("AllowAll");
 
 await app.UseOcelot();
 app.Run();
