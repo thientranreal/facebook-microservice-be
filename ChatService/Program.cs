@@ -10,21 +10,19 @@ builder.Services.AddSignalR();
 // Add config CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowSpecificOrigin",
-        builder =>
-        {
-            builder.WithOrigins("http://localhost:3000") // Nguồn gốc frontend
-                .AllowAnyMethod()
-                .AllowAnyHeader()
-                .AllowCredentials(); // Thêm nếu bạn sử dụng cookie hoặc thông tin xác thực
-        });
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
 });
 
 var app = builder.Build();
 
 // Use the CORS policy.
-app.UseCors("AllowSpecificOrigin");
-
+app.UseCors("AllowAll");
 app.MapHub<ChatHub>("/chathub");
 
 // Configure the HTTP request pipeline.
