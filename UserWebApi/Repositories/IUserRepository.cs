@@ -6,11 +6,9 @@ namespace UserWebApi.Repositories
     {
         Task<IEnumerable<User>> GetUsersAsync();
         //Task<User?> GetUserByIdAsync(int id);
-        Task<User?> GetUserByEmailAsync(string email);
-        Task<IEnumerable<User>> SearchUsersByNameAsync(string name);
-        //Task AddUserAsync(User user);
-        //Task UpdateUserAsync(User user);
-        //Task DeleteUserAsync(User user);
+        Task<User?> GetUserByEmailAsync(string email); 
+        Task<IEnumerable<User>> SearchUsersByNameAsync(string name); 
+        Task<List<User>> SearchUsersByNamePaginationAsync(string name, int limit, int offset);
         Task<bool> UserExistsAsync(string email);
         Task SaveChangesAsync();
     }

@@ -33,6 +33,15 @@ namespace UserWebApi.Repositories
                 .ToListAsync();
         }
 
+        public async Task<List<User>> SearchUsersByNamePaginationAsync(string name, int limit, int offset)
+        {
+            return await _dbContext.Users
+                .Where(u => u.Name.Contains(name))
+                .Skip(offset) // Bỏ qua số lượng bản ghi dựa trên offset
+                .Take(limit)  // Lấy số lượng bản ghi dựa trên limit
+                .ToListAsync();
+        }
+
         public async Task<bool> UserExistsAsync(string email)
         {
             return await _dbContext.Users.AnyAsync(u => u.Email == email);
