@@ -10,19 +10,21 @@ builder.Services.AddSignalR();
 // Add config CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
+
+    options.AddPolicy("AllowAll",
+        builder =>
+        {
+            builder.AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        });
 });
 
 var app = builder.Build();
 
 // Use the CORS policy.
 app.UseCors("AllowAll");
+
 app.MapHub<ChatHub>("/chathub");
 
 // Configure the HTTP request pipeline.

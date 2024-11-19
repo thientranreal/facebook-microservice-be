@@ -3,11 +3,11 @@ using UserWebApi.Models;
 
 namespace UserWebApi.Repositories
 {
-    public class UserRepository : IUserRepository
+    public class UserRepository :GenericRepository<User>, IUserRepository
     {
         private readonly UserDbContext _dbContext;
 
-        public UserRepository(UserDbContext dbContext)
+        public UserRepository(UserDbContext dbContext) : base(dbContext)
         {
             _dbContext = dbContext;
         }
@@ -19,11 +19,7 @@ namespace UserWebApi.Repositories
                 .Include(u => u.Friends2)
                 .ToListAsync();
         }
-
-        public async Task<User?> GetUserByIdAsync(int id)
-        {
-            return await _dbContext.Users.FindAsync(id);
-        }
+        
 
         public async Task<User?> GetUserByEmailAsync(string email)
         {
@@ -37,19 +33,13 @@ namespace UserWebApi.Repositories
                 .ToListAsync();
         }
 
-        public async Task AddUserAsync(User user)
+        public async Task<List<User>> SearchUsersByNamePaginationAsync(string name, int limit, int offset)
         {
-            await _dbContext.Users.AddAsync(user);
-        }
-
-        public async Task UpdateUserAsync(User user)
-        {
-            _dbContext.Users.Update(user);
-        }
-
-        public async Task DeleteUserAsync(User user)
-        {
-            _dbContext.Users.Remove(user);
+            return await _dbContext.Users
+                .Where(u => u.Name.Contains(name))
+                .Skip(offset) // Bỏ qua số lượng bản ghi dựa trên offset
+                .Take(limit)  // Lấy số lượng bản ghi dựa trên limit
+                .ToListAsync();
         }
 
         public async Task<bool> UserExistsAsync(string email)
