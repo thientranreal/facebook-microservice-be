@@ -7,6 +7,7 @@ builder.Configuration.SetBasePath(builder.Environment.ContentRootPath)
     .AddEnvironmentVariables();
 builder.Services.AddOcelot(builder.Configuration);
 
+var allowHost = Environment.GetEnvironmentVariable("ALLOW_HOST");
 
 // Add config CORS
 builder.Services.AddCors(options =>
@@ -20,12 +21,13 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod()
             .AllowCredentials();  // Cho phép cookies được gửi
     });
+
 });
 
 var app = builder.Build();
 
 // Use middleware CORS
-app.UseCors("AllowAll");
+app.UseCors("AllowSpecificOrigin");
 
 await app.UseOcelot();
 app.Run();

@@ -35,20 +35,15 @@ builder.Services.AddSession(options =>
 
 builder.Services.AddHttpClient();
 
-// =========================================
 
 // Add Session and Distributed Cache
 builder.Services.AddDistributedMemoryCache();
 
 
+
 var app = builder.Build();
 
-// Use CORS and Session Middleware
-app.UseCors("AllowReactApp");
-
 app.UseSession();
-
-app.UseAuthorization();
 
 app.MapControllers();
 
