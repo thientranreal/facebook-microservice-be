@@ -7,7 +7,7 @@ namespace UserWebApi.Repositories
     {
         private readonly UserDbContext _dbContext;
 
-        public UserRepository(UserDbContext dbContext):base(dbContext)
+        public UserRepository(UserDbContext dbContext) : base(dbContext)
         {
             _dbContext = dbContext;
         }
@@ -32,21 +32,6 @@ namespace UserWebApi.Repositories
                 .Where(u => u.Name.Contains(name)) 
                 .ToListAsync();
         }
-
-        /*public async Task AddUserAsync(User user)
-        {
-            await _dbContext.Users.AddAsync(user);
-        }
-
-        public async Task UpdateUserAsync(User user)
-        {
-            _dbContext.Users.Update(user);
-        }
-
-        public async Task DeleteUserAsync(User user)
-        {
-            _dbContext.Users.Remove(user);
-        }*/
 
         public async Task<bool> UserExistsAsync(string email)
         {
