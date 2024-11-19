@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PostWebApi.DTO;
 using PostWebApi.Models;
 
 namespace PostWebApi.Repositories;
@@ -65,27 +66,76 @@ public class PostRepository : IGenericRepository<Post>// nhớ implement IGeneri
     }
     
     //method GetPosts
-    public async Task<IEnumerable<Post>> GetPosts(int limit,int? lastPostId, int? userId)
+    // public async Task<IEnumerable<Post>> GetPosts(int limit,int? lastPostId, int? userId)
+    // {
+    //     IQueryable<Post> query = _dbContext.Posts
+    //         .OrderByDescending(post => post.timeline); // Order by newest posts first
+    //        
+    //     if (lastPostId != 0)
+    //     {
+    //         query = query.Where(post => post.id < lastPostId);
+    //     }
+    //    
+    //     // Apply user filter if userId is provided
+    //     if (userId.HasValue)
+    //     {
+    //         query = query.Where(post => post.userId == userId.Value);
+    //     }
+    //    
+    //     // Fetch limited posts according to the specified limit
+    //    return await query
+    //         .Take(limit)
+    //         .ToListAsync();
+    // }
+    
+    public async Task<IEnumerable<Post>> GetPosts(List<int> userIds,int? lastPostId, int limit)
     {
-        IQueryable<Post> query = _dbContext.Posts
-            .OrderByDescending(post => post.timeline); // Order by newest posts first
+        IQueryable<Post> query = _dbContext.Posts.AsQueryable();
 
-        if (lastPostId != 0)
+       
+        // Filter by userIds if provided
+        if (userIds != null && userIds.Any())
+        {
+            query = query.Where(post => userIds.Contains(post.userId));
+        }
+
+        // // Filter by lastPostId if provided (paging logic)
+        if (lastPostId.HasValue)
         {
             query = query.Where(post => post.id < lastPostId);
         }
 
-        // Apply user filter if userId is provided
-        if (userId.HasValue)
-        {
-            query = query.Where(post => post.userId == userId.Value);
-        }
+        // Order by PostId (or other column for sorting)
+        query = query.OrderByDescending(post => post.id);
 
-        // Fetch limited posts according to the specified limit
-        return await query
-            .Take(limit)
-            .ToListAsync();
+        // Limit the number of posts returned
+        query = query.Take(limit);
+
+        return await query.ToListAsync();
     }
+
+    public async Task<IEnumerable<Post>> GetPostsForSpectialUser(int? userId,int? lastPostId, int limit)
+    {
+         IQueryable<Post> query = _dbContext.Posts
+             .OrderByDescending(post => post.timeline); // Order by newest posts first
+            
+         if (lastPostId != 0)
+         {
+             query = query.Where(post => post.id < lastPostId);
+         }
+        
+         // Apply user filter if userId is provided
+         if (userId.HasValue)
+         { 
+             query = query.Where(post => post.userId == userId.Value);
+         }
+        
+         // Fetch limited posts according to the specified limit
+        return await query
+             .Take(limit)
+             .ToListAsync();
+    }
+
 
     //method GetPostSearch
     public async Task<IEnumerable<Post>> SearchPostsByContent(string content,int resultsLimit,int resultsOffset)

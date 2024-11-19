@@ -5,10 +5,17 @@ using PostWebApi.Models;
 using PostWebApi.Services;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
+using Google.Apis.Drive.v3.Data;
 using PostWebApi.Repositories;
+ using PostWebApi.DTO;
+ using User = PostWebApi.DTO.User;
+ using System.Text.Json;
+ using Newtonsoft.Json;
+ using Newtonsoft.Json.Linq;
 
-namespace PostWebApi.Controllers
+ namespace PostWebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -16,11 +23,13 @@ namespace PostWebApi.Controllers
     {
         private readonly PostRepository  _postRepository;
         private readonly GoogleDriveService _googleDriveService;
+        private readonly IHttpClientFactory _httpClientFactory;
         
-        public PostController(PostRepository postRepository,GoogleDriveService googleDriveService)
+        public PostController(PostRepository postRepository,GoogleDriveService googleDriveService,IHttpClientFactory httpClientFactory)
         {
             _postRepository = postRepository;
             _googleDriveService = googleDriveService;
+            _httpClientFactory = httpClientFactory;
         }
 
         // Helper function for image upload
@@ -37,13 +46,84 @@ namespace PostWebApi.Controllers
         
         // GET:(đối với khi lấy post hiển thị lên home) http://localhost:8001/api/post/${currentUserId}?lastPostId=${lastPostId}&limit=${postsPerPage}
         //GET: (đối với khi lấy post của một user)  http://localhost:8001/api/post/${currentUserId}/${userId}?lastPostId=${lastPostId}&limit=${postsPerPage}
+       // [HttpGet("{currentUserId}/{userId?}")]
+       // public async Task<ActionResult<IEnumerable<Post>>> GetPosts(int currentUserId, int? userId, int? lastPostId, int limit)
+       // {
+       //     // Ensure lastPostId is set to 0 if null to avoid issues in query comparisons
+       //     lastPostId ??= 0;
+       //
+       //     var posts = await _postRepository.GetPosts(limit,lastPostId,userId);
+       //     // var posts = await postsAsync;
+       //     // Return 204 No Content if no posts found
+       //     if (!posts.Any())
+       //     {
+       //         return NoContent();
+       //     }
+       //
+       //     // Set likedByCurrentUser flag for each post
+       //     foreach (var post in posts)
+       //     {
+       //         post.likedByCurrentUser = post.Reactions?.Any(r => r.UserId == currentUserId) ?? false;
+       //     }
+       //
+       //     return Ok(posts);
+       //  }
+       
+       [HttpGet("{currentUserId}")]
+       public async Task<ActionResult<IEnumerable<Post>>> GetPosts(int currentUserId,int? lastPostId,int limit)
+       {
+           var httpClient = _httpClientFactory.CreateClient();
+           var url = $"http://userwebapi:8080/api/friend/user/{currentUserId}"; // Gọi API `requestwebapi` với userId đúng
+           // Gửi yêu cầu GET tới API `requestwebapi`
+           var httpResponseMessage = await httpClient.GetAsync(url);
+
+           // Kiểm tra xem yêu cầu có thành công hay không
+           if (!httpResponseMessage.IsSuccessStatusCode)
+           {
+               return StatusCode((int)httpResponseMessage.StatusCode, "Failed to get non-friends data.");
+           }
+           
+           // Đọc nội dung phản hồi từ HTTP response
+           var content = await httpResponseMessage.Content.ReadAsStringAsync();
+           // Deserialize vào danh sách Request (thay vì dynamic)
+           var users = JsonConvert.DeserializeObject<List<User>>(content);
+           
+           // Khởi tạo danh sách userIds với currentUserId
+           var userIds = new List<int> { currentUserId };
+            // Thêm các Id còn lại từ danh sách users vào userIds
+           userIds.AddRange(users.Select(user => user.Id));
+
+           
+
+            // Fetch posts using the extracted IDs
+           var posts = await _postRepository.GetPosts(userIds,lastPostId,limit);
+           
+            // If no posts found, return 204 No Content
+           if (posts == null || !posts.Any())
+           {
+               return NoContent();
+           }
+           
+            // Set `likedByCurrentUser` flag for each post
+           foreach (var post in posts)
+           {
+               post.likedByCurrentUser = post.Reactions?.Any(r => r.UserId == currentUserId) ?? false;
+           }
+           
+            // Return the posts as a response
+           return Ok(posts);
+       }
+       
+       
+       
+       //Get post for spectial user 
        [HttpGet("{currentUserId}/{userId?}")]
        public async Task<ActionResult<IEnumerable<Post>>> GetPosts(int currentUserId, int? userId, int? lastPostId, int limit)
        {
            // Ensure lastPostId is set to 0 if null to avoid issues in query comparisons
            lastPostId ??= 0;
-
-           var posts = await _postRepository.GetPosts(limit,lastPostId,userId);
+       
+           var posts = await _postRepository.GetPostsForSpectialUser(userId,lastPostId,limit);
            // var posts = await postsAsync;
            // Return 204 No Content if no posts found
            if (!posts.Any())
@@ -61,7 +141,8 @@ namespace PostWebApi.Controllers
         }
 
 
-        //POST : api/post
+
+       //POST : api/post
         [HttpPost]
         public async Task<ActionResult<Post>> Create([FromForm] int userId, [FromForm] string contentPost, [FromForm] IFormFile? imageFile)
         {

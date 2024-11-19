@@ -23,6 +23,7 @@ builder.Services.AddDbContext<PostDbContext>(o => o.UseMySQL(connectionString));
 builder.Services.AddScoped<PostRepository>();
 builder.Services.AddScoped<StoryRepository>();
 builder.Services.AddScoped<GoogleDriveService>();
+builder.Services.AddHttpClient();
 
 
 //=========================================
