@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PostWebApi.Models;
+using PostWebApi.Repositories;
 
 namespace PostWebApi.Controllers
 {
@@ -9,10 +10,11 @@ namespace PostWebApi.Controllers
     public class Reactioncontroller : ControllerBase
     {
         private readonly PostDbContext _dbContext;
-        
-        public Reactioncontroller(PostDbContext postDbContext)
+        private readonly PostRepository _postRepository;
+        public Reactioncontroller(PostDbContext postDbContext, PostRepository postRepository)
         {
             _dbContext = postDbContext;
+            _postRepository = postRepository;
         }
 
         [HttpGet]
@@ -31,36 +33,70 @@ namespace PostWebApi.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);  // Trả về 400 Bad Request với thông tin lỗi
+                return BadRequest(ModelState); // Return 400 Bad Request with validation errors
             }
-            await _dbContext.Reactions.AddAsync(reaction);
-            await _dbContext.SaveChangesAsync();
-            return Ok();
+            try
+            {
+                // Check if the post exists
+                var post = await _postRepository.Exited(reaction.PostId);
+                if (post == null)
+                {
+                    return NotFound(); // Return 404 if post does not exist
+                }
+
+                // Add reaction to the database
+                await _dbContext.Reactions.AddAsync(reaction);
+                await _dbContext.SaveChangesAsync();
+
+                return Ok(); // Return 200 OK
+            }
+            catch (Exception e)
+            {
+                // Log the error (replace with your logging mechanism)
+                Console.WriteLine($"Error: {e.Message}");
+                // Return 500 Internal Server Error
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
         }
+
         
         // DELETE: api/reaction/{postid}/{userid}
         [HttpDelete("{postid}/{userid}")]
         public async Task<IActionResult> Delete(int postid, int userid)
         {
-            // 1. Try to find the reaction in the database by postid and userid
-            var existingReaction = await _dbContext.Reactions
-                .SingleOrDefaultAsync(r => r.PostId == postid && r.UserId == userid);
-
-            // 2. If the reaction doesn't exist, return NotFound (404)
-            if (existingReaction == null)
+            try
             {
-                return NotFound();  // Reaction not found
+                // 1. Try to find the reaction in the database by postid and userid
+                var existingReaction = await _dbContext.Reactions
+                    .SingleOrDefaultAsync(r => r.PostId == postid && r.UserId == userid);
+
+                var post = await _postRepository.Exited(postid);
+
+                // 2. If the reaction doesn't exist, return NotFound (404)
+                if (existingReaction == null || post == null)
+                {
+                    return NotFound();  // Reaction or Post not found
+                }
+
+                // 3. Remove the reaction
+                _dbContext.Reactions.Remove(existingReaction);
+
+                // 4. Save changes asynchronously
+                await _dbContext.SaveChangesAsync();
+
+                // 5. Return NoContent (204) if the deletion was successful
+                return NoContent();
             }
+            catch (Exception e)
+            {
+                // Log the error (replace with your logging mechanism)
+                Console.WriteLine($"Error: {e.Message}");
 
-            // 3. Remove the reaction
-            _dbContext.Reactions.Remove(existingReaction);
-
-            // 4. Save changes asynchronously
-            await _dbContext.SaveChangesAsync();
-
-            // 5. Return NoContent (204) if the deletion was successful
-            return NoContent();
+                // Return 500 Internal Server Error
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
         }
+
 
     }
 }

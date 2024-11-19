@@ -5,21 +5,31 @@ using PostWebApi.Models;
 using PostWebApi.Services;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
+using Google.Apis.Drive.v3.Data;
+using PostWebApi.Repositories;
+ using PostWebApi.DTO;
+ using User = PostWebApi.DTO.User;
+ using System.Text.Json;
+ using Newtonsoft.Json;
+ using Newtonsoft.Json.Linq;
 
-namespace PostWebApi.Controllers
+ namespace PostWebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     public class PostController : ControllerBase
     {
-        private readonly PostDbContext _dbContext;
+        private readonly PostRepository  _postRepository;
         private readonly GoogleDriveService _googleDriveService;
+        private readonly IHttpClientFactory _httpClientFactory;
         
-        public PostController(PostDbContext postDbContext,GoogleDriveService googleDriveService)
+        public PostController(PostRepository postRepository,GoogleDriveService googleDriveService,IHttpClientFactory httpClientFactory)
         {
-            _dbContext = postDbContext;
+            _postRepository = postRepository;
             _googleDriveService = googleDriveService;
+            _httpClientFactory = httpClientFactory;
         }
 
         // Helper function for image upload
@@ -36,31 +46,85 @@ namespace PostWebApi.Controllers
         
         // GET:(đối với khi lấy post hiển thị lên home) http://localhost:8001/api/post/${currentUserId}?lastPostId=${lastPostId}&limit=${postsPerPage}
         //GET: (đối với khi lấy post của một user)  http://localhost:8001/api/post/${currentUserId}/${userId}?lastPostId=${lastPostId}&limit=${postsPerPage}
+       // [HttpGet("{currentUserId}/{userId?}")]
+       // public async Task<ActionResult<IEnumerable<Post>>> GetPosts(int currentUserId, int? userId, int? lastPostId, int limit)
+       // {
+       //     // Ensure lastPostId is set to 0 if null to avoid issues in query comparisons
+       //     lastPostId ??= 0;
+       //
+       //     var posts = await _postRepository.GetPosts(limit,lastPostId,userId);
+       //     // var posts = await postsAsync;
+       //     // Return 204 No Content if no posts found
+       //     if (!posts.Any())
+       //     {
+       //         return NoContent();
+       //     }
+       //
+       //     // Set likedByCurrentUser flag for each post
+       //     foreach (var post in posts)
+       //     {
+       //         post.likedByCurrentUser = post.Reactions?.Any(r => r.UserId == currentUserId) ?? false;
+       //     }
+       //
+       //     return Ok(posts);
+       //  }
+       
+       [HttpGet("{currentUserId}")]
+       public async Task<ActionResult<IEnumerable<Post>>> GetPosts(int currentUserId,int? lastPostId,int limit)
+       {
+           var httpClient = _httpClientFactory.CreateClient();
+           var url = $"http://userwebapi:8080/api/friend/user/{currentUserId}"; // Gọi API `requestwebapi` với userId đúng
+           // Gửi yêu cầu GET tới API `requestwebapi`
+           var httpResponseMessage = await httpClient.GetAsync(url);
+
+           // Kiểm tra xem yêu cầu có thành công hay không
+           if (!httpResponseMessage.IsSuccessStatusCode)
+           {
+               return StatusCode((int)httpResponseMessage.StatusCode, "Failed to get non-friends data.");
+           }
+           
+           // Đọc nội dung phản hồi từ HTTP response
+           var content = await httpResponseMessage.Content.ReadAsStringAsync();
+           // Deserialize vào danh sách Request (thay vì dynamic)
+           var users = JsonConvert.DeserializeObject<List<User>>(content);
+           
+           // Khởi tạo danh sách userIds với currentUserId
+           var userIds = new List<int> { currentUserId };
+            // Thêm các Id còn lại từ danh sách users vào userIds
+           userIds.AddRange(users.Select(user => user.Id));
+
+           
+
+            // Fetch posts using the extracted IDs
+           var posts = await _postRepository.GetPosts(userIds,lastPostId,limit);
+           
+            // If no posts found, return 204 No Content
+           if (posts == null || !posts.Any())
+           {
+               return NoContent();
+           }
+           
+            // Set `likedByCurrentUser` flag for each post
+           foreach (var post in posts)
+           {
+               post.likedByCurrentUser = post.Reactions?.Any(r => r.UserId == currentUserId) ?? false;
+           }
+           
+            // Return the posts as a response
+           return Ok(posts);
+       }
+       
+       
+       
+       //Get post for spectial user 
        [HttpGet("{currentUserId}/{userId?}")]
        public async Task<ActionResult<IEnumerable<Post>>> GetPosts(int currentUserId, int? userId, int? lastPostId, int limit)
        {
            // Ensure lastPostId is set to 0 if null to avoid issues in query comparisons
            lastPostId ??= 0;
-
-           IQueryable<Post> query = _dbContext.Posts
-               .OrderByDescending(post => post.timeline); // Order by newest posts first
-           
-           if (lastPostId != 0)
-           {
-               query = query.Where(post => post.id < lastPostId);
-           }
        
-           // Apply user filter if userId is provided
-           if (userId.HasValue)
-           {
-               query = query.Where(post => post.userId == userId.Value);
-           }
-       
-           // Fetch limited posts according to the specified limit
-           var posts = await query
-               .Take(limit)
-               .ToListAsync();
-       
+           var posts = await _postRepository.GetPostsForSpectialUser(userId,lastPostId,limit);
+           // var posts = await postsAsync;
            // Return 204 No Content if no posts found
            if (!posts.Any())
            {
@@ -77,7 +141,8 @@ namespace PostWebApi.Controllers
         }
 
 
-        //POST : api/post
+
+       //POST : api/post
         [HttpPost]
         public async Task<ActionResult<Post>> Create([FromForm] int userId, [FromForm] string contentPost, [FromForm] IFormFile? imageFile)
         {
@@ -89,7 +154,7 @@ namespace PostWebApi.Controllers
             try
             {
                 string imageUrl = await UploadImageAsync(imageFile);
-
+                var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
                 // Create and save the post
                 var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
                 var post = new Post
@@ -100,9 +165,10 @@ namespace PostWebApi.Controllers
                     timeline = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamTimeZone),
                 };
 
-                await _dbContext.Posts.AddAsync(post);
-                await _dbContext.SaveChangesAsync();
-
+                // await _dbContext.Posts.AddAsync(post);
+                // await _dbContext.SaveChangesAsync();
+                
+                await _postRepository.AddAsync(post);
                 return Ok(post);  // Return the created post
             }
             catch (Exception ex)
@@ -122,7 +188,8 @@ namespace PostWebApi.Controllers
                 return BadRequest(ModelState);  
             }
             // 1. Find the existing post by ID
-            var existingPost = await _dbContext.Posts.SingleOrDefaultAsync(p => p.id == id);
+            // var existingPost = await _dbContext.Posts.SingleOrDefaultAsync(p => p.id == id);
+            var existingPost = await _postRepository.Exited(id);
             if (existingPost == null)
             {
                 return NotFound();
@@ -148,7 +215,8 @@ namespace PostWebApi.Controllers
             }
             try
             {
-                await _dbContext.SaveChangesAsync();
+                // await _dbContext.SaveChangesAsync();
+                await _postRepository.SaveChangesAsync();
             }
             catch (DbUpdateException ex)
             {
@@ -166,7 +234,8 @@ namespace PostWebApi.Controllers
         {   
             
             //KIỂM TRA XEM POST CÓ TỒN TẠI KHÔNG?
-            var post = await _dbContext.Posts.SingleOrDefaultAsync(p => p.id == id);
+            // var post = await _dbContext.Posts.SingleOrDefaultAsync(p => p.id == id);
+            var post = await _postRepository.Exited(id);
             //NẾU POST KHÔNG TỒN TẠI THÌ TRẢ VỀ 404 
             if (post == null)
             {
@@ -182,8 +251,9 @@ namespace PostWebApi.Controllers
                 var isSuccess = _googleDriveService.DeleteImageFile(match.Groups[1].Value);
                
             }
-             _dbContext.Posts.Remove(post);
-             await _dbContext.SaveChangesAsync();
+             // _dbContext.Posts.Remove(post);
+             // await _dbContext.SaveChangesAsync();
+             await _postRepository.DeleteAsync(post);
              return NoContent();
         }
 
@@ -197,17 +267,23 @@ namespace PostWebApi.Controllers
             {
                 return BadRequest("Content parameter is required.");
             }
-
+            
+            // var posts = await _dbContext.Posts
+            //     .Where(post => post.content.Contains(content))
+            //     .ToListAsync();
+            // var posts = await _postRepository.SearchPostsByContent(content);
             int resultsLimit = limit ?? 10;
             int resultsOffset = offset ?? 0;
 
-            var posts = await _dbContext.Posts
-                .Where(post => post.content.Contains(content))
-                .Skip(resultsOffset) // Bỏ qua số lượng bản ghi dựa trên offset
-                .Take(resultsLimit)  // Lấy số lượng bản ghi dựa trên limit
-                .ToListAsync();
+            // var posts = await _dbContext.Posts
+            //     .Where(post => post.content.Contains(content))
+            //     .Skip(resultsOffset) // Bỏ qua số lượng bản ghi dựa trên offset
+            //     .Take(resultsLimit)  // Lấy số lượng bản ghi dựa trên limit
+            //     .ToListAsync();
+            var posts = await _postRepository.SearchPostsByContent(content,resultsLimit,resultsOffset);
 
-            if (posts == null || posts.Count == 0)
+
+            if (posts == null)
             {
                 return NotFound($"No posts found with content containing: {content}.");
             }
@@ -245,10 +321,11 @@ namespace PostWebApi.Controllers
         [HttpGet("post-noti/{id}/{currentUserId}")]
         public async Task<IActionResult> GetPostById(int id, int currentUserId)
         {
-            var post = await _dbContext.Posts
-                .Include(p => p.Comments)
-                .Include(p => p.Reactions)
-                .FirstOrDefaultAsync(p => p.id == id);
+            // var post = await _dbContext.Posts
+            //     .Include(p => p.Comments)
+            //     .Include(p => p.Reactions)
+            //     .FirstOrDefaultAsync(p => p.id == id);
+            var post = await _postRepository.GetByIdAsync(id);
 
             if (post == null)
             {
