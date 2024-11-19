@@ -61,7 +61,7 @@ namespace PostWebApi.Controllers
                 return NotFound();
 
             return Ok(stories);
-        }
+        }        
 
         [HttpGet("{userId}")]
         public async Task<IActionResult> GetStoriesByUserId(int userId)
