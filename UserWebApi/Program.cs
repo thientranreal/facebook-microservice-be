@@ -29,19 +29,17 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromDays(14); // Thời gian session tồn tại 2 tuần
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
+
 builder.Services.AddHttpClient();
 
 // =========================================
 
 // Add Session and Distributed Cache
 builder.Services.AddDistributedMemoryCache();
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-});
+
 
 var app = builder.Build();
 
