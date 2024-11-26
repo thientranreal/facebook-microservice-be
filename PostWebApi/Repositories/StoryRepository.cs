@@ -49,11 +49,11 @@ public class StoryRepository : IGenericRepository<Story>
     }
 
     // Custom methods specific to StoryRepository
-    public async Task<IEnumerable<Story>> GetStoriesWithin24HoursAsync()
+    public async Task<IEnumerable<Story>> GetStoriesWithin24HoursAsync(int user)
     {
         var twentyFourHoursAgo = DateTime.Now.AddHours(-24);
         return await _context.Stories
-            .Where(s => s.timeline >= twentyFourHoursAgo)
+            .Where(s => s.timeline >= twentyFourHoursAgo && s.userId == user)
             .OrderByDescending(s => s.timeline)
             .ToListAsync();
     }

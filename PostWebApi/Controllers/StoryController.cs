@@ -54,14 +54,14 @@ namespace PostWebApi.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetStories()
+        public async Task<IActionResult> GetStories([FromQuery] int userId)
         {
-            var stories = await _storyRepository.GetStoriesWithin24HoursAsync();
+            var stories = await _storyRepository.GetStoriesWithin24HoursAsync(userId);
             if (stories == null || !stories.Any())
                 return NotFound();
-
+        
             return Ok(stories);
-        }
+        }    
 
         [HttpGet("{userId}")]
         public async Task<IActionResult> GetStoriesByUserId(int userId)
