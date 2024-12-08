@@ -32,8 +32,6 @@
     build:
       context: .
       dockerfile: ChatService/Dockerfile
-    environment:
-      - ALLOW_HOST=http://192.168.28.61:3000
     ports:
       - "8002:8080"
     networks:
@@ -154,8 +152,6 @@
     build:
       context: .
       dockerfile: ApiGateway/Dockerfile
-    environment:
-      - ALLOW_HOST=http://192.168.28.61:3000
     depends_on:
       - contactwebapi
       - notificationwebapi
