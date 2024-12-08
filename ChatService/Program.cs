@@ -14,10 +14,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:3000", 
-                "http://192.168.28.61:3000",
-                "http://192.168.176.1:3000")  // Đảm bảo thêm tất cả các URL có thể sử dụng
+        policy.WithOrigins("http://localhost:3000")
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();  // Cho phép cookies được gửi
